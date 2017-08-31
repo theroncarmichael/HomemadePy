@@ -140,7 +140,9 @@ def sigma_clip(x,y, deg = 1, nloops = 15, SIG = 5.0):
 			break
 	return line_params
 
-def gauss_lorentz_hermite_prof(x, mu1 = 0.0, amp1 = 1.0, sig = 1.0, offset1 = 1.0, offset2 = 1.0, c1 = 1.0, c2 = 1.0, c3 = 1.0, c4 = 1.0, c5 = 1.0, c6 = 1.0, c7 = 1.0, c8 = 1.0, c9 = 1.0, amp2 = 1.0, gamma = 0.5, mu2 = 0.1):
+def gauss_lorentz_hermite_prof(x, mu1 = 0.0, amp1 = 1.0, sig = 1.0, offset1 = 1.0, offset2 = 1.0, 
+			       c1 = 1.0, c2 = 1.0, c3 = 1.0, c4 = 1.0, c5 = 1.0, c6 = 1.0, c7 = 1.0, c8 = 1.0, c9 = 1.0, 
+			       amp2 = 1.0, gamma = 0.5, mu2 = 0.1):
 	gauss = amp1 * np.exp(-0.5 * (( x - mu1 ) / sig )**2) + offset1
 	lorentz = amp2 * (0.5 * gamma) / (( x - mu2 )**2 + (0.5 * gamma)**2) + offset2
 	h_poly = c1*x + c2*x**2 + c3*x**3 + c4*x**4 + c5*x**5 + c6*x**6 + c7*x**7 + c8*x**8 + c9*x**9
