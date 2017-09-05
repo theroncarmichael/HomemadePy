@@ -8,3 +8,6 @@ export PYTHONPATH="${PYTHONPATH}:/Users/username/HomemadePy/"
 Version history comments
 version 0.1
   - pychelle.flat() still under construction
+  
+version 0.2
+  - functional with HIRES and MINERVA detectors
