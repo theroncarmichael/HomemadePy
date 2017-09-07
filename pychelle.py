@@ -243,18 +243,18 @@ def trace(IMAGE, XSTART, YSTART, XSTEP, YRANGE, NSIG, FILEWRITE, SEP,
 		odr_start = list(np.delete(odr_start, -1))
     trc_cont = raw_input(str(len(odr_start))+" orders found, is this accurate? (y/n): ")
     while trc_cont != 'y' and trc_cont != 'n': 
-	    trc_cont = raw_input('Enter y or n: ')
-	    if trc_cont == 'y' or trc_cont == 'n': break
+		trc_cont = raw_input('Enter y or n: ')
+		if trc_cont == 'y' or trc_cont == 'n': break
     if trc_cont == 'n':
-	    print 'Starting Y-pixel coordinates of orders: ', odr_start
-	    print 'Exiting pychelle.trace(). Adjust SEP, NSIG, or CUTOFF to locate the correct number of full orders.\n'
-	    return [], [], [], []
+		print 'Starting Y-pixel coordinates of orders: ', odr_start
+		print 'Exiting pychelle.trace(). Adjust SEP, NSIG, or CUTOFF to locate the correct number of full orders.\n'
+		return [], [], [], []
     elif trc_cont == 'y':
-	    print 'Starting Y-pixel coordinates of orders: ', odr_start
-	    print str(len(odr_start))+" orders found, scanning each column for the pixel coordinates of peaks...\n"
-	    # Algorithm for order definition via a trace function #
-	    prof_shape, end_trace = [], False
-	    for o in range(len(odr_start)):  #At each pixel coordinate where a peak (the top of an order) was detected
+		print 'Starting Y-pixel coordinates of orders: ', odr_start
+		print str(len(odr_start))+" orders found, scanning each column for the pixel coordinates of peaks...\n"
+		# Algorithm for order definition via a trace function #
+		prof_shape, end_trace = [], False
+		for o in range(len(odr_start)):  #At each pixel coordinate where a peak (the top of an order) was detected
 			if MINERVA:
 				dy = 8 # ----------------------------- Hard coded half-width of each order; width = 2*dy
 			elif HIRES:
@@ -274,8 +274,8 @@ def trace(IMAGE, XSTART, YSTART, XSTEP, YRANGE, NSIG, FILEWRITE, SEP,
 						if len(yvals) > 5:
 						ytrend = int(np.mean(yvals[len(yvals)-5:]))
 						if np.abs((ypeaks[y] + YSTART) - ytrend) <= YRANGE: #Checking that the next peaks are within
-				    		ypix = ypeaks[y]                                #range of the trend
-				    		break
+							ypix = ypeaks[y]                                #range of the trend
+							break
 	    # Fit a Gaussian to the cross-section of each order to find the center for the trace function  #
 				initial_model = models.Gaussian1D(mean=ypix, stddev=1.2, amplitude = np.max(column[ypix-dy : ypix+dy]))
 				fit_method = fitting.LevMarLSQFitter()
@@ -377,9 +377,9 @@ def flat(FILENAME, FILEWRITE, HDR, WINDOW, WRITE = True):
     flat_img = fits.open(str(FILENAME))[HDR].data
     model_flat = np.zeros(flat_img.shape) #Create an array that is the same shape as the image
     for i in range(flat_img.shape[1]):
-    	flat_col = flat_img[:,i]
-    	med_flat = scipy.signal.medfilt(flat_col, WINDOW)
-    	model_flat[:,i] = med_flat
+		flat_col = flat_img[:,i]
+		med_flat = scipy.signal.medfilt(flat_col, WINDOW)
+		model_flat[:,i] = med_flat
     print 'Dividing the trimmed flat by the median smoothed model flat...'
     norm_flat = flat_img / model_flat #The quantum efficiency based on the modelling method
     if WRITE:
@@ -438,23 +438,23 @@ def spectext(IMAGE, NFIB, TRACE_ARR, YSPREAD, FILEWRITE, CAL = False):
                     pdb.set_trace()
                 signal[j,i] = scipy.integrate.cumtrapz(cts_int_rng,dy_int)[-1] + up_pix + low_pix
         # Blaze fitting #
-	    if CAL == True: #Fit a blaze function to the continuum of an emission arclamp
-	    	blaze_pars = sigma_clip(xrng, signal[j], deg = 7, nloops = 30)
-		blaze = np.polyval(blaze_pars, xrng)
-		low = np.where(signal[j] <= blaze)
-		blaze_pars_new = sigma_clip(xrng[low], signal[j][low], deg = 7, nloops = 30)
-		blfn = np.polyval(blaze_pars_new, xrng)
-		spec_flat[j] = (signal[j]/blfn)
-	    else:
-	    	if signal[j][0] < signal[j][-1]: #Find the count      #The trace of each order is fit with tf and the
-        		mn = signal[j][0]        #values for the      #start of this trace is where the rectified orders
-            	else:                            #edges of the order  #begin. This reduces the effect of cosmic rays at the
-                  	mn = signal[j][-1]       #to fit the blaze    #left edge of the order misplacing the starting point
-          	blaze = peaks(signal[j],0.1,MEAN = mn) #Find top of spectrum to approximate the blaze function
-                pks = signal[j][blaze]
-                blazed = trace_fit(blaze, pks,7) #Fit blaze function to top of spectrum
-	        blfn = np.polyval(blazed[1], xrng)
-                spec_flat[j] = (signal[j]/blfn)
+		if CAL == True: #Fit a blaze function to the continuum of an emission arclamp
+			blaze_pars = sigma_clip(xrng, signal[j], deg = 7, nloops = 30)
+			blaze = np.polyval(blaze_pars, xrng)
+			low = np.where(signal[j] <= blaze)
+			blaze_pars_new = sigma_clip(xrng[low], signal[j][low], deg = 7, nloops = 30)
+			blfn = np.polyval(blaze_pars_new, xrng)
+			spec_flat[j] = (signal[j]/blfn)
+		else:
+			if signal[j][0] < signal[j][-1]: #Find the count      #The trace of each order is fit with tf and the
+				mn = signal[j][0]        #values for the      #start of this trace is where the rectified orders
+			else:                            #edges of the order  #begin. This reduces the effect of cosmic rays at the
+				mn = signal[j][-1]       #to fit the blaze    #left edge of the order misplacing the starting point
+			blaze = peaks(signal[j],0.1,MEAN = mn) #Find top of spectrum to approximate the blaze function
+			pks = signal[j][blaze]
+			blazed = trace_fit(blaze, pks,7) #Fit blaze function to top of spectrum
+			blfn = np.polyval(blazed[1], xrng)
+			spec_flat[j] = (signal[j]/blfn)
     spec_f = fits.ImageHDU(spec_flat, name = 'Blaze-corrected spectrum') 
     spec = fits.ImageHDU(signal, name = '1D Spectrum')
     xpix = fits.ImageHDU(xrng, name = 'X pixel')
