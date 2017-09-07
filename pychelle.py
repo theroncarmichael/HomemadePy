@@ -272,7 +272,7 @@ def trace(IMAGE, XSTART, YSTART, XSTEP, YRANGE, NSIG, FILEWRITE, SEP,
 									       #for the rest of the horizontal range. The trend is an average
 					else:                  #pixel coordinate value for 5 preceding peak pixels
 						if len(yvals) > 5:
-						ytrend = int(np.mean(yvals[len(yvals)-5:]))
+							ytrend = int(np.mean(yvals[len(yvals)-5:]))
 						if np.abs((ypeaks[y] + YSTART) - ytrend) <= YRANGE: #Checking that the next peaks are within
 							ypix = ypeaks[y]                                #range of the trend
 							break
@@ -289,20 +289,20 @@ def trace(IMAGE, XSTART, YSTART, XSTEP, YRANGE, NSIG, FILEWRITE, SEP,
 				odr_prof = fit_method(initial_model, xaxis, yaxis) #Fit X and Y data using the initialized 1D Gaussian
 				background_level = np.median(yaxis)#odr_prof2.offset2.value + odr_prof2.offset1.value    
 				if background_level <= 0.0:# or np.abs(ypix - odr_prof.mean[0]) >= 10:
-			    	plt.plot(xaxis, yaxis, 'ko')
-			    	xmooth = np.linspace(xaxis[0],xaxis[-1],1000)
-			    	#plt.plot(xmooth, odr_prof2(xmooth), 'b-', label = 'Gauss-Hermite-Lorentz')
-			    	plt.plot(xaxis, odr_prof(xaxis), 'g-', label = str(ypix)+'_'+str(odr_prof.mean[0]))
-			    	plt.title('col_number_'+str(i+1)+'_order_'+str(o+1))
-			    	plt.axhline(y = background_level, color = 'g')
-			    	#plt.axhline(y = np.median(odr_prof2(xmooth)), color = 'r')
-				    #plt.axhline(y = np.median(yaxis), color = 'm')
-				    #plt.xlim(20,50), plt.ylim(0,70)
-				    plt.legend()
-				    #plt.savefig('/Users/theroncarmichael/Desktop/Exolab/diags/KH_15D_chunks/
+					plt.plot(xaxis, yaxis, 'ko')
+					xmooth = np.linspace(xaxis[0],xaxis[-1],1000)
+					#plt.plot(xmooth, odr_prof2(xmooth), 'b-', label = 'Gauss-Hermite-Lorentz')
+					plt.plot(xaxis, odr_prof(xaxis), 'g-', label = str(ypix)+'_'+str(odr_prof.mean[0]))
+					plt.title('col_number_'+str(i+1)+'_order_'+str(o+1))
+					plt.axhline(y = background_level, color = 'g')
+					#plt.axhline(y = np.median(odr_prof2(xmooth)), color = 'r')
+					#plt.axhline(y = np.median(yaxis), color = 'm')
+					#plt.xlim(20,50), plt.ylim(0,70)
+					plt.legend()
+					#plt.savefig('/Users/theroncarmichael/Desktop/Exolab/diags/KH_15D_chunks/
 					#col_number_'+str(i+1)+'_order_'+str(o+1))
-			    	plt.show()
-			    	plt.close()
+					plt.show()
+					plt.close()
 				fit_centroid = float(odr_prof.mean[0])
 	    # Add the centroid fit to the array used to fit a trace function #
 				centroids += [fit_centroid + YSTART]
@@ -350,7 +350,7 @@ def trace(IMAGE, XSTART, YSTART, XSTEP, YRANGE, NSIG, FILEWRITE, SEP,
 			#pdb.set_trace()
 		
 			counts, yvals, centroids, background_levels = [], [], [], [] #Reset the arrays for the next order in loop
-	    if WRITE:
+		if WRITE:
 			hdulist = fits.HDUList()
 			f1 = fits.ImageHDU(trace_arr, name = 'Trace function')
 			f2 = fits.ImageHDU(prof_shape, name = 'Profile fitting')
@@ -464,3 +464,4 @@ def spectext(IMAGE, NFIB, TRACE_ARR, YSPREAD, FILEWRITE, CAL = False):
     hdu.close()
     print '\n ~-# Spectrum extracted #-~\n'
     return xrng, signal, spec_flat
+
