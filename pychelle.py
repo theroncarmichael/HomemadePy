@@ -155,14 +155,14 @@ def gauss_lorentz_hermite_prof(x, mu1 = 0.0, amp1 = 1.0, sig = 1.0, offset1 = 1.
 	return (h_poly) * gauss + lorentz
 
 def instrumental_profile(image, order_length, trc_fn, gauss_width):
-    """ 
-    This function is the algorithm for creating a super-sampled profile of each spectral order.
-    Sample the trace at each column to produce a profile shape for the trace using the trace function.\n
-    image: The cleaned echelle image
-    order_length: The length of the dispersion direction (number of x pixels)
-    trc_fn: The trace functions of each spectral order of the cleaned image
-    gauss_width: The distance from the center of each order to include in the Gaussian fit\n
-    """
+	""" 
+	This function is the algorithm for creating a super-sampled profile of each spectral order.
+	Sample the trace at each column to produce a profile shape for the trace using the trace function.\n
+	image: The cleaned echelle image
+	order_length: The length of the dispersion direction (number of x pixels)
+	trc_fn: The trace functions of each spectral order of the cleaned image
+	gauss_width: The distance from the center of each order to include in the Gaussian fit\n
+	"""
 	sample_length = len(np.arange(int(10-gauss_width),int(10+gauss_width),1))
 	order_sample_arr = np.zeros((order_length, sample_length))
 	for x in range(order_length):
@@ -240,7 +240,7 @@ def trace(IMAGE, XSTART, YSTART, XSTEP, YRANGE, NSIG, FILEWRITE, SEP,
             odr_ind += [i]                                                      #This avoids double-counting a peak
     odr_start = list(np.delete(odr_start,odr_ind))                              
     if HIRES and np.abs(odr_start[-1] - IMAGE.shape[0]) <= 10:
-	odr_start = list(np.delete(odr_start, -1))
+		odr_start = list(np.delete(odr_start, -1))
     trc_cont = raw_input(str(len(odr_start))+" orders found, is this accurate? (y/n): ")
     while trc_cont != 'y' and trc_cont != 'n': 
 	    trc_cont = raw_input('Enter y or n: ')
@@ -255,111 +255,111 @@ def trace(IMAGE, XSTART, YSTART, XSTEP, YRANGE, NSIG, FILEWRITE, SEP,
 	    # Algorithm for order definition via a trace function #
 	    prof_shape, end_trace = [], False
 	    for o in range(len(odr_start)):  #At each pixel coordinate where a peak (the top of an order) was detected
-		if MINERVA:
-		    dy = 8 # ----------------------------- Hard coded half-width of each order; width = 2*dy
-		elif HIRES:
-		    dy = 15
-		for i in xrng:    #(the values in 'odr_start'),take slices of each column across the
-		    column = IMAGE[YSTART:IMAGE.shape[0],i-1] #horizontal range (xrng) and begin tracing the order based on
-		    ypeaks = peaks(column,NSIG)   #the peak coordinates found near the currently iterating loop
-		    if len(ypeaks) == 0:
-			print 'Starting too close to edge; increase XSTART in trace()\n'
-			break
-		    for y in range(len(ypeaks)):
-			if len(yvals) <= 5 and np.abs((ypeaks[y] + YSTART) - odr_start[o]) <= YRANGE:
-			    ypix = ypeaks[y]   #After the first few (5 in this case) peaks are found, this
-			    break              #trend (X,Y pixel coordinates) is what is updated and referenced
-					       #for the rest of the horizontal range. The trend is an average
-			else:                  #pixel coordinate value for 5 preceding peak pixels
-			    if len(yvals) > 5:
-				ytrend = int(np.mean(yvals[len(yvals)-5:]))
-				if np.abs((ypeaks[y] + YSTART) - ytrend) <= YRANGE: #Checking that the next peaks are within
-				    ypix = ypeaks[y]                                #range of the trend
-				    break
+			if MINERVA:
+				dy = 8 # ----------------------------- Hard coded half-width of each order; width = 2*dy
+			elif HIRES:
+				dy = 15
+			for i in xrng:    #(the values in 'odr_start'),take slices of each column across the
+				column = IMAGE[YSTART:IMAGE.shape[0],i-1] #horizontal range (xrng) and begin tracing the order based on
+				ypeaks = peaks(column,NSIG)   #the peak coordinates found near the currently iterating loop
+				if len(ypeaks) == 0:
+					print 'Starting too close to edge; increase XSTART in trace()\n'
+					break
+				for y in range(len(ypeaks)):
+					if len(yvals) <= 5 and np.abs((ypeaks[y] + YSTART) - odr_start[o]) <= YRANGE:
+						ypix = ypeaks[y]   #After the first few (5 in this case) peaks are found, this
+						break              #trend (X,Y pixel coordinates) is what is updated and referenced
+									       #for the rest of the horizontal range. The trend is an average
+					else:                  #pixel coordinate value for 5 preceding peak pixels
+			    		if len(yvals) > 5:
+						ytrend = int(np.mean(yvals[len(yvals)-5:]))
+						if np.abs((ypeaks[y] + YSTART) - ytrend) <= YRANGE: #Checking that the next peaks are within
+				    		ypix = ypeaks[y]                                #range of the trend
+				    		break
 	    # Fit a Gaussian to the cross-section of each order to find the center for the trace function  #
-		    initial_model = models.Gaussian1D(mean=ypix, stddev=1.2, amplitude = np.max(column[ypix-dy : ypix+dy]))
-		    fit_method = fitting.LevMarLSQFitter()
-		    xaxis, yaxis = np.arange(ypix-dy, ypix+dy, 1), column[ypix-dy : ypix+dy]
-		    if len(xaxis) > len(yaxis): # If column[] is indexed at an integer > it's length, the order is
-				                # running off the edge of the detector
-			    print '\nTruncated order detected\n'
-			    odr_start = np.delete(odr_start, o)
-			    end_trace = True
-			    break
-		    odr_prof = fit_method(initial_model, xaxis, yaxis) #Fit X and Y data using the initialized 1D Gaussian
-		    background_level = np.median(yaxis)#odr_prof2.offset2.value + odr_prof2.offset1.value    
-		    if background_level <= 0.0:# or np.abs(ypix - odr_prof.mean[0]) >= 10:
-			    plt.plot(xaxis, yaxis, 'ko')
-			    xmooth = np.linspace(xaxis[0],xaxis[-1],1000)
-			    #plt.plot(xmooth, odr_prof2(xmooth), 'b-', label = 'Gauss-Hermite-Lorentz')
-			    plt.plot(xaxis, odr_prof(xaxis), 'g-', label = str(ypix)+'_'+str(odr_prof.mean[0]))
-			    plt.title('col_number_'+str(i+1)+'_order_'+str(o+1))
-			    plt.axhline(y = background_level, color = 'g')
-			    #plt.axhline(y = np.median(odr_prof2(xmooth)), color = 'r')
-			    #plt.axhline(y = np.median(yaxis), color = 'm')
-			    #plt.xlim(20,50), plt.ylim(0,70)
-			    plt.legend()
-			    #plt.savefig('/Users/theroncarmichael/Desktop/Exolab/diags/KH_15D_chunks/
-				#col_number_'+str(i+1)+'_order_'+str(o+1))
-			    plt.show()
-			    plt.close()
-		    fit_centroid = float(odr_prof.mean[0])
+				initial_model = models.Gaussian1D(mean=ypix, stddev=1.2, amplitude = np.max(column[ypix-dy : ypix+dy]))
+				fit_method = fitting.LevMarLSQFitter()
+				xaxis, yaxis = np.arange(ypix-dy, ypix+dy, 1), column[ypix-dy : ypix+dy]
+				if len(xaxis) > len(yaxis): # If column[] is indexed at an integer > it's length, the order is
+					                # running off the edge of the detector
+					print '\nTruncated order detected\n'
+					odr_start = np.delete(odr_start, o)
+					end_trace = True
+					break
+				odr_prof = fit_method(initial_model, xaxis, yaxis) #Fit X and Y data using the initialized 1D Gaussian
+				background_level = np.median(yaxis)#odr_prof2.offset2.value + odr_prof2.offset1.value    
+				if background_level <= 0.0:# or np.abs(ypix - odr_prof.mean[0]) >= 10:
+			    	plt.plot(xaxis, yaxis, 'ko')
+			    	xmooth = np.linspace(xaxis[0],xaxis[-1],1000)
+			    	#plt.plot(xmooth, odr_prof2(xmooth), 'b-', label = 'Gauss-Hermite-Lorentz')
+			    	plt.plot(xaxis, odr_prof(xaxis), 'g-', label = str(ypix)+'_'+str(odr_prof.mean[0]))
+			    	plt.title('col_number_'+str(i+1)+'_order_'+str(o+1))
+			    	plt.axhline(y = background_level, color = 'g')
+			    	#plt.axhline(y = np.median(odr_prof2(xmooth)), color = 'r')
+				    #plt.axhline(y = np.median(yaxis), color = 'm')
+				    #plt.xlim(20,50), plt.ylim(0,70)
+				    plt.legend()
+				    #plt.savefig('/Users/theroncarmichael/Desktop/Exolab/diags/KH_15D_chunks/
+					#col_number_'+str(i+1)+'_order_'+str(o+1))
+			    	plt.show()
+			    	plt.close()
+				fit_centroid = float(odr_prof.mean[0])
 	    # Add the centroid fit to the array used to fit a trace function #
-		    centroids += [fit_centroid + YSTART]
-		    yvals += [ypix + YSTART]
-		    counts += [column[ypix]]
-		    background_levels += [background_level]
+				centroids += [fit_centroid + YSTART]
+				yvals += [ypix + YSTART]
+				counts += [column[ypix]]
+				background_levels += [background_level]
 	    # Diagnostic plot for difference between Gaussian centroids and peak location of cross-section of order #
-		    #x_fine = np.arange(ypix-dy, ypix+dy, 0.1)
-		    #d_peak = np.round(np.abs(fit_centroid - xaxis[len(xaxis)/2]),3)
-		    #plt.figure(i)
-		    #plt.plot(xaxis , yaxis, 'bo')
-		    #plt.plot(x_fine, odr_prof(x_fine), 'r-', linewidth = 1.5)
-		    #gp, = plt.plot(odr_prof.mean[0], odr_prof.amplitude[0], 'go')
-		    #plt.legend([gp] ,['Peak residuals: '+str(d_peak)+' pixels'],  loc=1 , prop = {'size':10})
-		    #plt.xlim(xaxis[0], xaxis[-1]), plt.show()
-		    #pdb.set_trace()
+			    #x_fine = np.arange(ypix-dy, ypix+dy, 0.1)
+			    #d_peak = np.round(np.abs(fit_centroid - xaxis[len(xaxis)/2]),3)
+			    #plt.figure(i)
+			    #plt.plot(xaxis , yaxis, 'bo')
+			    #plt.plot(x_fine, odr_prof(x_fine), 'r-', linewidth = 1.5)
+			    #gp, = plt.plot(odr_prof.mean[0], odr_prof.amplitude[0], 'go')
+			    #plt.legend([gp] ,['Peak residuals: '+str(d_peak)+' pixels'],  loc=1 , prop = {'size':10})
+			    #plt.xlim(xaxis[0], xaxis[-1]), plt.show()
+			    #pdb.set_trace()
 		    
-		if end_trace == True:
-			break #Stop creating new centroids for the trace function
+			if end_trace == True:
+				break #Stop creating new centroids for the trace function
 	    # Use the centroid values from the Gaussian fits to create a trace of order[o] #
-		#yvals = [x+1 for x in yvals] #Correct for indexing 0 to 1
-		order_length, gauss_width = len(yvals), 10
-		trc_fn = trace_fit(xrng, centroids, deg = 7)[0]
-		trace_arr[o] = trc_fn#Store the trace function for each order
-		print '\n=== Spectral order '+str(o+1)+' traced ==='
-		print 'Calculating profile shape for order '+str(o+1)+'...'
-		prof_shape += [instrumental_profile(IMAGE, order_length, trc_fn, gauss_width)]
+			#yvals = [x+1 for x in yvals] #Correct for indexing 0 to 1
+			order_length, gauss_width = len(yvals), 10
+			trc_fn = trace_fit(xrng, centroids, deg = 7)[0]
+			trace_arr[o] = trc_fn#Store the trace function for each order
+			print '\n=== Spectral order '+str(o+1)+' traced ==='
+			print 'Calculating profile shape for order '+str(o+1)+'...'
+			prof_shape += [instrumental_profile(IMAGE, order_length, trc_fn, gauss_width)]
 		
 		# Diagnostic plot for difference between Gaussian centroids and peak location of cross-section of order #
-		#plt.figure(1, figsize = (10,5))
-		#c, = plt.plot(xrng, trc_fn, 'b-', linewidth = 1.0, label = 'Gaussian Centroid fit')#trace_arr[o], 'r-')
-		#plt.plot(xrng, yvals, 'k.', markersize = 2.0)
-		#f, = plt.plot(xrng, trace_fit, 'r-', linewidth = 1.0, label = 'Peak of Data fit')
-		#plt.plot(xrng, centroids, 'g.', markersize = 2.0)
-		#plt.gca().invert_yaxis(), plt.xlim(xrng[0],xrng[-1])
-		#plt.title('Centroid-fit and peak-fit trace function'), plt.xlabel('X Pixel'), plt.ylabel('Y Pixel')
-		#plt.legend(handles = [c,f], loc=1, prop = {'size':11})
-
-		#plt.figure(2, figsize = (10,5))
-		#plt.plot(xrng, trc_fn - yvals, 'ko', markersize = 2.0)
-		#plt.xlim(xrng[0],xrng[-1])
-		#plt.title('Residuals between data and fit to centroid fits'), plt.xlabel('X Pixel')
-		#plt.ylabel('Y Pixel (Centroid - Data)')
-		#plt.show()
-		#pdb.set_trace()
+			#plt.figure(1, figsize = (10,5))
+			#c, = plt.plot(xrng, trc_fn, 'b-', linewidth = 1.0, label = 'Gaussian Centroid fit')#trace_arr[o], 'r-')
+			#plt.plot(xrng, yvals, 'k.', markersize = 2.0)
+			#f, = plt.plot(xrng, trace_fit, 'r-', linewidth = 1.0, label = 'Peak of Data fit')
+			#plt.plot(xrng, centroids, 'g.', markersize = 2.0)
+			#plt.gca().invert_yaxis(), plt.xlim(xrng[0],xrng[-1])
+			#plt.title('Centroid-fit and peak-fit trace function'), plt.xlabel('X Pixel'), plt.ylabel('Y Pixel')
+			#plt.legend(handles = [c,f], loc=1, prop = {'size':11})
+	
+			#plt.figure(2, figsize = (10,5))
+			#plt.plot(xrng, trc_fn - yvals, 'ko', markersize = 2.0)
+			#plt.xlim(xrng[0],xrng[-1])
+			#plt.title('Residuals between data and fit to centroid fits'), plt.xlabel('X Pixel')
+			#plt.ylabel('Y Pixel (Centroid - Data)')
+			#plt.show()
+			#pdb.set_trace()
 		
-		counts, yvals, centroids, background_levels = [], [], [], [] #Reset the arrays for the next order in loop
+			counts, yvals, centroids, background_levels = [], [], [], [] #Reset the arrays for the next order in loop
 	    if WRITE:
-		hdulist = fits.HDUList()
-		f1 = fits.ImageHDU(trace_arr, name = 'Trace function')
-		f2 = fits.ImageHDU(prof_shape, name = 'Profile fitting')
-		hdulist.append(f1), hdulist.append(f2)
-		hdulist.writeto(str(FILEWRITE)+'_TRC.fits', overwrite = True)
-		print 'Writing file '+str(FILEWRITE)+'_TRC.fits'
-		hdulist.close()
-		print '\n ~-# Spectral orders traced: '+str(len(odr_start))+' #-~\n'
-            return trace_arr, prof_shape
+			hdulist = fits.HDUList()
+			f1 = fits.ImageHDU(trace_arr, name = 'Trace function')
+			f2 = fits.ImageHDU(prof_shape, name = 'Profile fitting')
+			hdulist.append(f1), hdulist.append(f2)
+			hdulist.writeto(str(FILEWRITE)+'_TRC.fits', overwrite = True)
+			print 'Writing file '+str(FILEWRITE)+'_TRC.fits'
+			hdulist.close()
+			print '\n ~-# Spectral orders traced: '+str(len(odr_start))+' #-~\n'
+		return trace_arr, prof_shape
 
 
 
