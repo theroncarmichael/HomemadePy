@@ -271,7 +271,7 @@ def trace(IMAGE, XSTART, YSTART, XSTEP, YRANGE, NSIG, FILEWRITE, SEP,
 						break              #trend (X,Y pixel coordinates) is what is updated and referenced
 									       #for the rest of the horizontal range. The trend is an average
 					else:                  #pixel coordinate value for 5 preceding peak pixels
-			    		if len(yvals) > 5:
+						if len(yvals) > 5:
 						ytrend = int(np.mean(yvals[len(yvals)-5:]))
 						if np.abs((ypeaks[y] + YSTART) - ytrend) <= YRANGE: #Checking that the next peaks are within
 				    		ypix = ypeaks[y]                                #range of the trend
