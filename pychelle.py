@@ -109,7 +109,7 @@ def trace_fit(x,y, deg = 1):
 	trc_fnc = np.polyval(line_params, x)
 	return trc_fnc, line_params
 
-def sigma_clip(x,y, deg = 1, nloops = 15, SIG = 5.0):
+def sigma_clip(x,y, deg = 1, nloops = 15, sig = 5.0):
 	"""
 	Sigma clip data based on a fit produced by numpy's polyfit and polyval functions\n
 	x: The x data input used in numpy.polyfit()
@@ -415,28 +415,28 @@ def spectext(IMAGE, NFIB, TRACE_ARR, YSPREAD, FILEWRITE, CAL = False):
 	else:
 		print 'Using trace coordinates to locate spectrum on fiber '+str(f)+' of '+str(NFIB)+'...'
         # Integrate the counts over a length of the column along each point in the trace function #
-        for j in range(len(trace_path)):
-            for i in xrng:
-                dy = np.arange(trace_path[j][i]-YSPREAD,trace_path[j][i]+YSPREAD,1)
-                dy_int = dy.astype(int)
-                bottom, top, out_rng = 0, IMAGE.shape[0], []
-                for p in range(len(dy_int)): #Remove indices beyond the range of the detector
-                    if dy_int[p] <= bottom+1:
-                        out_rng += [p]
-                    if dy_int[p] >= top-1:
-                        out_rng += [p]
-                dy_int, dy = np.delete(dy_int,out_rng), np.delete(dy,out_rng)
-                if CAL == False:
-			cts_int_rng = IMAGE[dy_int,i] - np.median(IMAGE[dy_int,i])
-		elif CAL == True:
-			cts_int_rng = IMAGE[dy_int,i]
-                up_pix = np.abs(dy[-1]-dy_int[-1])*IMAGE[dy_int[-1]+1,i] 
+	for j in range(len(trace_path)):
+		for i in xrng:
+			dy = np.arange(trace_path[j][i]-YSPREAD,trace_path[j][i]+YSPREAD,1)
+			dy_int = dy.astype(int)
+			bottom, top, out_rng = 0, IMAGE.shape[0], []
+			for p in range(len(dy_int)): #Remove indices beyond the range of the detector
+				if dy_int[p] <= bottom+1:
+					out_rng += [p]
+				if dy_int[p] >= top-1:
+					out_rng += [p]
+			dy_int, dy = np.delete(dy_int,out_rng), np.delete(dy,out_rng)
+			if CAL == False:
+				cts_int_rng = IMAGE[dy_int,i] - np.median(IMAGE[dy_int,i])
+			elif CAL == True:
+				cts_int_rng = IMAGE[dy_int,i]
+			up_pix = np.abs(dy[-1]-dy_int[-1])*IMAGE[dy_int[-1]+1,i] 
 		#Take the lower fraction of counts from the uppermost pixel cut through by dy
-                low_pix = (1 - np.abs(dy[0]-dy_int[0]))*IMAGE[dy_int[0],i] 
+			low_pix = (1 - np.abs(dy[0]-dy_int[0]))*IMAGE[dy_int[0],i] 
 		#Take the upper fraction of counts from the lowermost pixel cut through by dy
-                if len(scipy.integrate.cumtrapz(cts_int_rng,dy_int)) == 0:
-                    pdb.set_trace()
-                signal[j,i] = scipy.integrate.cumtrapz(cts_int_rng,dy_int)[-1] + up_pix + low_pix
+			if len(scipy.integrate.cumtrapz(cts_int_rng,dy_int)) == 0:
+				pdb.set_trace()
+			signal[j,i] = scipy.integrate.cumtrapz(cts_int_rng,dy_int)[-1] + up_pix + low_pix
         # Blaze fitting #
 		if CAL == True: #Fit a blaze function to the continuum of an emission arclamp
 			blaze_pars = sigma_clip(xrng, signal[j], deg = 7, nloops = 30)
@@ -455,13 +455,13 @@ def spectext(IMAGE, NFIB, TRACE_ARR, YSPREAD, FILEWRITE, CAL = False):
 			blazed = trace_fit(blaze, pks,7) #Fit blaze function to top of spectrum
 			blfn = np.polyval(blazed[1], xrng)
 			spec_flat[j] = (signal[j]/blfn)
-    spec_f = fits.ImageHDU(spec_flat, name = 'Blaze-corrected spectrum') 
-    spec = fits.ImageHDU(signal, name = '1D Spectrum')
-    xpix = fits.ImageHDU(xrng, name = 'X pixel')
-    hdu.append(xpix), hdu.append(spec), hdu.append(spec_f)
-    print 'Writing file: ', str(FILEWRITE)+'_SPEC.fits'
-    hdu.writeto(str(FILEWRITE)+'_SPEC.fits', overwrite = True)
-    hdu.close()
-    print '\n ~-# Spectrum extracted #-~\n'
-    return xrng, signal, spec_flat
+	spec_f = fits.ImageHDU(spec_flat, name = 'Blaze-corrected spectrum') 
+	spec = fits.ImageHDU(signal, name = '1D Spectrum')
+	xpix = fits.ImageHDU(xrng, name = 'X pixel')
+	hdu.append(xpix), hdu.append(spec), hdu.append(spec_f)
+	print 'Writing file: ', str(FILEWRITE)+'_SPEC.fits'
+	hdu.writeto(str(FILEWRITE)+'_SPEC.fits', overwrite = True)
+	hdu.close()
+	print '\n ~-# Spectrum extracted #-~\n'
+	return xrng, signal, spec_flat
 
