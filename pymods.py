@@ -24,3 +24,5 @@ def plot(X = [0], Y = [0], IMAGE = np.zeros((10,10)), COLOR = 'b.', MS = 2.0, LW
 		cax = div.append_axes("right", size="5%", pad=0.05)
 		plt.colorbar(im, cax = cax)
 	pass
+
+
