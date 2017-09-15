@@ -380,6 +380,9 @@ def flat(FILENAME, FILEWRITE, HDR, WINDOW, WRITE = True):
 		flat_col = flat_img[:,i]
 		med_flat = scipy.signal.medfilt(flat_col, WINDOW)
 		model_flat[:,i] = med_flat
+		if len(np.where(med_flat <= 0)[0]) > 0:
+			print np.where(med_flat <= 0)[0]
+			pdb.set_trace()
     print 'Dividing the trimmed flat by the median smoothed model flat...'
     norm_flat = flat_img / model_flat #The quantum efficiency based on the modelling method
     if WRITE:
