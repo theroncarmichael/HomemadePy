@@ -231,7 +231,7 @@ def trace(IMAGE, XSTART, YSTART, XSTEP, YRANGE, NSIG, FILEWRITE, SEP,
     if ODR: #Use input list of order starting locations
         odr_start = ODR
     if MINERVA == True: #Account for the curve in orders across the detector cutting off on the edge and remove them
-	#cutoff_order =  np.where(np.array(odr_start) - 70 < 0)[0]
+        #cutoff_order =  np.where(np.array(odr_start) - 70 < 0)[0]
         odr_start = np.delete(odr_start, CUTOFF)
     #Create an empty array for the trace function of each order
     trace_arr = np.zeros((len(odr_start),IMAGE.shape[1]/XSTEP))
@@ -330,7 +330,7 @@ def trace(IMAGE, XSTART, YSTART, XSTEP, YRANGE, NSIG, FILEWRITE, SEP,
 			print '\n=== Spectral order '+str(o+1)+' traced ==='
 			print 'Calculating profile shape for order '+str(o+1)+'...'
 			prof_shape += [instrumental_profile(IMAGE, order_length, trc_fn, gauss_width)]
-		
+	
 		# Diagnostic plot for difference between Gaussian centroids and peak location of cross-section of order #
 			#plt.figure(1, figsize = (10,5))
 			#c, = plt.plot(xrng, trc_fn, 'b-', linewidth = 1.0, label = 'Gaussian Centroid fit')#trace_arr[o], 'r-')
@@ -348,7 +348,15 @@ def trace(IMAGE, XSTART, YSTART, XSTEP, YRANGE, NSIG, FILEWRITE, SEP,
 			#plt.ylabel('Y Pixel (Centroid - Data)')
 			#plt.show()
 			#pdb.set_trace()
-		
+			
+			#plt.figure(figsize = (7,7), dpi = 70)
+			#plt.title('Trace function of an echelle order from HIRES', fontsize = 16)
+			#plt.xlabel('Dispersion direction (column number)', fontsize = 14), plt.ylabel('Cross-dispersion direction (row number)', fontsize = 14)
+			#plt.plot(trc_fn, ls = '-', color = 'royalblue', lw = 2.0, label = 'Trace function')
+			#plt.plot(yvals, color = 'k', marker = '.', ls = 'None', label = 'Physical peak of order'), plt.plot(centroids, ls = '-', color = 'orange', lw = 2.0, label = 'Modeled peak of order')
+			#plt.legend(loc = 2), plt.show()
+			#pdb.set_trace()
+			
 			counts, yvals, centroids, background_levels = [], [], [], [] #Reset the arrays for the next order in loop
 		if WRITE:
 			hdulist = fits.HDUList()
@@ -365,35 +373,46 @@ def trace(IMAGE, XSTART, YSTART, XSTEP, YRANGE, NSIG, FILEWRITE, SEP,
 
 
 def flat(FILENAME, FILEWRITE, HDR, WINDOW, WRITE = True):
-    """
-    This function creates normalized flat images of echelle spectra.\n
-    FILENAME: Name of raw data file
-    FILEWRITE: User-designated name of reduced data file
-    HDR: Header index of raw image in FILENAME
-    WINDOW: Size of the smoothing window used in scipy.signal.medfilt()
-    WRITE: True: Save image to FILEWRITE / False: Do not save to FILEWRITE\n
-    """
-    print 'Creating normalized flat image...'
-    flat_img = fits.open(str(FILENAME))[HDR].data
-    model_flat = np.zeros(flat_img.shape) #Create an array that is the same shape as the image
-    for i in range(flat_img.shape[1]):
+	"""
+	This function creates normalized flat images of echelle spectra.\n
+	FILENAME: Name of raw data file
+	FILEWRITE: User-designated name of reduced data file
+	HDR: Header index of raw image in FILENAME
+	WINDOW: Size of the smoothing window used in scipy.signal.medfilt()
+	WRITE: True: Save image to FILEWRITE / False: Do not save to FILEWRITE\n
+	"""
+	print 'Creating normalized flat image...'
+	flat_img = fits.open(str(FILENAME))[HDR].data
+	model_flat = np.zeros(flat_img.shape) #Create an array that is the same shape as the image
+	for i in range(flat_img.shape[1]):
 		flat_col = flat_img[:,i]
 		med_flat = scipy.signal.medfilt(flat_col, WINDOW)
-		model_flat[:,i] = med_flat
+		#plt.title('Cross section of HIRES flat image', fontsize = 16), plt.xlabel('Cross-dispersion direction (row number)', fontsize = 14), plt.ylabel('Counts', fontsize = 14)
+		#plt.plot(flat_col, color = 'black', lw = '1.0'), plt.xlim(0, flat_img.shape[0])
+		#plt.plot(med_flat, color = 'royalblue', lw = 2.0, label = 'Median filtered cross section'), plt.legend()
+		#plt.show()
+		#pdb.set_trace()
 		if len(np.where(med_flat <= 0)[0]) > 0:
-			print np.where(med_flat <= 0)[0]
-			pdb.set_trace()
-    print 'Dividing the trimmed flat by the median smoothed model flat...'
-    norm_flat = flat_img / model_flat #The quantum efficiency based on the modelling method
-    if WRITE:
-        hdu = fits.HDUList()
-        flat = fits.ImageHDU(flat_img, name = 'Original flat')
-        norm = fits.ImageHDU(norm_flat, name = 'Normalized Flat')
-        hdu.append(norm), hdu.append(flat)
-        print 'Writing file: ', str(FILEWRITE)+'_FLT.fits'
-        hdu.writeto(str(FILEWRITE)+'_FLT.fits', overwrite = True)
-    print '\n~-# Normalized flat image created #-~\n'
-    return norm_flat, flat_img
+			med_flat[np.where(med_flat <= 0)[0]] = 1.0
+			#pdb.set_trace()
+		model_flat[:,i] = med_flat
+	print 'Dividing the trimmed flat by the median smoothed model flat...'
+	flat_img[flat_img <= 0.0] = 1.0
+	norm_flat = flat_img / model_flat #The quantum efficiency based on the modelling method
+	#plt.plot( np.where(flat_img == 0)[1], np.where(flat_img == 0)[0], 'go' ) 
+	#plt.xlim(-100, 4200), plt.ylim(-50, 700)
+	#plt.axhline(y = flat_img.shape[0]), plt.axhline(y = 0), plt.axvline(x = 0), plt.axvline(x = flat_img.shape[1])
+	#plt.show()
+	#pdb.set_trace()
+	if WRITE:
+		hdu = fits.HDUList()
+		flat = fits.ImageHDU(flat_img, name = 'Original flat')
+		norm = fits.ImageHDU(norm_flat, name = 'Normalized Flat')
+		hdu.append(norm), hdu.append(flat)
+		print 'Writing file: ', str(FILEWRITE)+'_FLT.fits'
+		hdu.writeto(str(FILEWRITE)+'_FLT.fits', overwrite = True)
+	print '\n~-# Normalized flat image created #-~\n'
+	return norm_flat, flat_img
     #Returns the input flat image, the two quantum efficiencies, and the two modelling methods
 
 
