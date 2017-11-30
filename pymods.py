@@ -5,6 +5,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from collections import defaultdict
 from astropy.modeling import models, fitting
 from scipy.signal import medfilt
+import scipy.stats
 
 def plot(X = [0], Y = [0], IMAGE = np.zeros((10,10)), COLOR = 'b.', MS = 2.0, LW = 2.0, FIGX = 10, FIGY = 10,  NAXIS = 1, BG = 'white', INTER = 'none', VMIN = True, VMAX = True, NO = 1):
 	if NAXIS == 1:

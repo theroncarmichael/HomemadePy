@@ -36,6 +36,12 @@ def clean(filename, filewrite, flip, cut, scan, write = True, hdr = 0, HIRES = F
     #then cut-cols should equal 50 to remove these dark areas.
     for i in range(nrows): #loop through the number of rows
         bias[i] = np.median(image[[i]][0][scan:ncols]) #take row #i and look the in overscan region parsed with [scan:ncols]
+    clipped_bias = scipy.stats.sigmaclip(bias) #Remove outliers
+    bias_sigma = 5.0*np.std(clipped_bias[0])
+    bias_median = np.median(clipped_bias[0])
+    bias[bias <= (bias_median - bias_sigma)] = bias_median
+    bias[bias >= (bias_median + bias_sigma)] = bias_median    
+    for i in range(nrows):
         image[i,:] -= bias[i] #Find and subtract the median bias of each row from the overscan region
     image = np.delete(image, np.s_[cut:ncols], axis = 1) #cut is the pixel the orders end on
     if HIRES: #Trim the image according to HIRES specifications
@@ -43,8 +49,11 @@ def clean(filename, filewrite, flip, cut, scan, write = True, hdr = 0, HIRES = F
         image = np.delete(image, np.s_[0:27:1], axis = 0) #delete the bottom rows after the top rows 
     if write:
         hdulist = fits.HDUList()
+        prime_hdr = fits.PrimaryHDU()
+        prime_hdr.header['Bias_med'], prime_hdr.header['Bias_dev'] = round(bias_median), round(bias_sigma,2)
+        prime_hdr.header['Bias_min'], prime_hdr.header['Bias_max'] = round(np.min(bias)), round(np.max(bias))
         cleaned_image = fits.ImageHDU(image, name = 'Processed 2D Image')
-        hdulist.append(cleaned_image)
+        hdulist.append(prime_hdr), hdulist.append(cleaned_image)
         print 'Writing file: ', str(filewrite)+'_CLN.fits'
         hdulist.writeto(str(filewrite)+'_CLN.fits', overwrite = True)
 	print '\n~-# Image processed #-~ \n'
