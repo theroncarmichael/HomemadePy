@@ -1,12 +1,11 @@
 from pymods import *
 from astropy.modeling.models import custom_model
-from scipy.special import  erf
 import warnings
 warnings.simplefilter('ignore', np.RankWarning)
 
 def clean(filename, filewrite, flip, cut, scan, write = True, hdr = 0, HIRES = False):
     """
-    The clean() function removes NaN values and performs a row-by-row subtraction of the overscan region on the image. 
+    The clean() function removes NaN values and does a row-by-row subtraction of the overscan region on the image. 
     The wavelength dispersion direction should approximately go from left to right (use flip = T if 
     the echelle orders are vertical). 
     This function returns a 2D image with the overscan region trimmed away.
