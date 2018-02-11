@@ -324,16 +324,26 @@ def trace(image, xstart, ystart, xstep, yrange, nsig, filewrite, sep,
           MIKE=False, cutoff=[0]):
     """
     This function returns the coordinates of the echelle orders.\n
+    ----------
+    Parameters:
+    ----------
     image: 2-D image array containg echelle orders
-    xstart/ystart: Typically 0 for the corner of the image from which the search for orders begins
-    xstep: Number of X-pixels to skip subtracting 1 to include in a fit to the trace, 
-    i.e. ``xstep`` = 1 uses all X-pixels (skips 0 pixels)
-    yrange: Y-pixel range to search for the next part of the order as the X-pixels are looped over
-    nsig: The number of standard deviations away from the ``mean`` a ``y`` value in ``y`` must be to qualitfy as a peak
+    xstart/ystart: Typically 0 for the corner of the image from which 
+    the search for orders begins
+    xstep: Number of X-pixels to skip subtracting 1 to include in 
+    a fit to the trace, i.e. ``xstep`` = 1 uses all X-pixels
+    yrange: Y-pixel range to search for the next part of the order 
+    as the X-pixels are looped over
+    nsig: The number of standard deviations away from the 
+    ``mean`` a ``y`` value in ``y`` must be to qualitfy as a peak
     filewrite: User-designated name of traced data file
-    sep: Y-pixel separation between two detected peaks; used to only take one of these adjacent peaks
-    write: True: Save image to ``filewrite`` / False: Do not save to ``filewrite``
-    odr: 1-D array; if the starting Y-pixel values of each order is known, then input odr\n
+    sep: Y-pixel separation between two detected peaks; used to only 
+    take one of these adjacent peaks
+    write: True: Save image to ``filewrite``
+    odr: 1-D array; if the starting Y-pixel of each order is known, input odr\n
+    -------
+    Returns:
+    -------   
     """
     print 'Locating spectral orders on cleaned image...'
     xrng, yvals, counts, centroids = np.arange(1,image.shape[1]+1,xstep), [], [], []
@@ -491,11 +501,17 @@ def trace(image, xstart, ystart, xstep, yrange, nsig, filewrite, sep,
 def flat(filepath, filewrite, hdr, window, write=True):
     """
     This function creates normalized flat images of echelle spectra.\n
+    ----------
+    Parameters:
+    ----------    
     filepath: Location of raw data files
     filewrite: User-designated name of reduced data file
     hdr: Header index of raw image in ``filename``
     window: Size of the smoothing window used in scipy.signal.medfilt()
     write: True: Save image to ``filewrite`` / False: Do not save to ``filewrite``\n
+    -------
+    Returns:
+    -------  
     """
     print 'Creating normalized flat image...'
     file_no = np.sort(glob.glob(filepath+'*fits'))
@@ -539,12 +555,18 @@ def flat(filepath, filewrite, hdr, window, write=True):
 def spectext(image, nfib, trace_arr, yspread, filewrite, cal=False):
     """
     This function integrates an echelle image along the trace function of each order to collapse it from 2D to 1D.\n
+    ----------
+    Parameters:
+    ----------    
     image: 2-D image array containing echelle orders
     nfib: Number of fibers
     trace_arr: 2-D array of number of columns x number of orders containing the coordinates of the orders
     yspread: Approximate width of order. Calibration spectra are typically wider than science spectra
     filewrite: User-designated name of reduced data file
     cal: True if the spectrum is a calibration spectrum\n
+    -------
+    Returns:
+    -------
     """
     hdu = fits.HDUList()
     for f in range(1,nfib+1):
