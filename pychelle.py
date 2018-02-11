@@ -1,63 +1,99 @@
-from pymods import *
+import numpy as np
+import astropy.io.fits as fits
+import random
+import scipy
+import pdb
+import ipdb
+import glob
+import matplotlib.pyplot as plt
+import matplotlib.axes as ax
+import matplotlib as mpl
+from matplotlib.legend_handler import HandlerLine2D
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from collections import defaultdict
+from astropy.modeling import models, fitting
+from scipy.signal import medfilt
+import scipy.stats
 from astropy.modeling.models import custom_model
 import warnings
 warnings.simplefilter('ignore', np.RankWarning)
 
-def clean(filename, filewrite, flip, cut, scan, write = True, hdr = 0, HIRES = False):
+######################################################################
+def clean(filename, filewrite, flip, cut, scan, 
+          write = True, hdr = 0, HIRES = False):
     """
-    The clean() function removes NaN values and does a row-by-row subtraction of the overscan region on the image. 
-    The wavelength dispersion direction should approximately go from left to right (use flip = T if 
+    The clean() function removes NaN values and does a row-by-row 
+    subtraction of the overscan region on the image. 
+    The wavelength dispersion direction should approximately go 
+    from left to right (use flip = T if 
     the echelle orders are vertical). 
-    This function returns a 2D image with the overscan region trimmed away.
-    For slit-fed echelle, sky-subtraction is accounted for in pychelle.trace().\n
+    This function returns a 2D image with the overscan region 
+    trimmed away.
+    For slit-fed echelle, sky-subtraction is accounted for in 
+    pychelle.trace().
     ----------
     Parameters:
     ----------
     filename: Name of raw data file
     filewrite: User-designated name of reduced data file
-    flip: True: Rotated image by 90 degrees with numpy.rot90() / False: Do not rotate image
+    flip: True: Rotated image by 90 degrees with numpy.rot90()
     cut: X-pixel value image is trimmed to
     scan: The X-pixel value of the start of the overscan region
-    write: True: Save image to ``filewrite`` / False: Do not save to ``filewrite``
+    write: True: Save image to ``filewrite``
     hdr: Header index of raw image in ``filename``
+    ----------
+    Returns: 2D image with overscan region trimmed off
+    ----------
     """
     print 'Processing image...'
     image_file = fits.open(str(filename))
     image = image_file[hdr].data.astype(float)
     image_file.close()
-    image = image[[~np.any(np.isnan(image),axis = 1)]] #Remove NaN values
-    if flip: #Rotate the frame so the orders run horizontally
+    # Remove NaN values
+    image = image[[~np.any(np.isnan(image),axis = 1)]]
+    if flip: # Rotate the frame so the orders run horizontally
         image = np.rot90(image, k = 1)
-    nrows, ncols = image.shape[0], image.shape[1] #Number of rows, columns
+    nrows, ncols = image.shape[0], image.shape[1]
     bias, dark = np.zeros(nrows), np.arange(cut,nrows*ncols,ncols) 
-    #dark is the last column of pixels at which this cutoff occurs and only darker areas that 
-    #are not part of the orders remain. 
-    #For example, if there are 50 columns of darkness after the orders end, 
-    #then cut-cols should equal 50 to remove these dark areas.
-    for i in range(nrows): #loop through the number of rows
-        bias[i] = np.median(image[[i]][0][scan:ncols]) #take row #i and look the in overscan region parsed with [scan:ncols]
+    # dark is the last column of pixels at which this cutoff occurs
+    # and only darker areas that are not part of the orders remain. 
+    # For example, if there are 50 columns of darkness after the orders
+    # end, then cut-cols should equal 50 to remove these dark areas.
+    for i in range(nrows): # loop through the number of rows
+        # take row i and look the in overscan 
+        # region parsed with [scan:ncols]
+        bias[i] = np.median(image[[i]][0][scan:ncols]) 
     clipped_bias = scipy.stats.sigmaclip(bias) #Remove outliers
     bias_sigma = 5.0*np.std(clipped_bias[0])
     bias_median = np.median(clipped_bias[0])
     bias[bias <= (bias_median - bias_sigma)] = bias_median
     bias[bias >= (bias_median + bias_sigma)] = bias_median    
+######################################################################
     for i in range(nrows):
-        image[i,:] -= bias[i] #Find and subtract the median bias of each row from the overscan region
-    image = np.delete(image, np.s_[cut:ncols], axis = 1) #cut is the pixel the orders end on
-    if HIRES: #Trim the image according to HIRES specifications
-        image = np.delete(image, np.s_[681::1] , axis = 0) #axis = 0 deletes rows (681 to the top row here)
-        image = np.delete(image, np.s_[0:27:1], axis = 0) #delete the bottom rows after the top rows 
+        # Find and subtract the median bias of each row 
+        # from the overscan region
+        image[i,:] -= bias[i]
+    # ``cut`` is the pixel on which the orders finishes
+    image = np.delete(image, np.s_[cut:ncols], axis = 1)
+    if HIRES: # Trim the image according to HIRES specifications
+        # axis = 0 deletes rows (681 to the top row here)
+        image = np.delete(image, np.s_[681::1] , axis = 0)
+        # delete the bottom rows after the top rows
+        image = np.delete(image, np.s_[0:27:1], axis = 0)  
     if write:
         hdulist = fits.HDUList()
         prime_hdr = fits.PrimaryHDU()
-        prime_hdr.header['Bias_med'], prime_hdr.header['Bias_dev'] = round(bias_median), round(bias_sigma,2)
-        prime_hdr.header['Bias_min'], prime_hdr.header['Bias_max'] = round(np.min(bias)), round(np.max(bias))
+        prime_hdr.header['Bias_med'] = round(bias_median) 
+        prime_hdr.header['Bias_dev'] = round(bias_sigma,2)
+        prime_hdr.header['Bias_min'] = round(np.min(bias))
+        prime_hdr.header['Bias_max'] = round(np.max(bias))
         cleaned_image = fits.ImageHDU(image, name = 'Processed 2D Image')
-        hdulist.append(prime_hdr), hdulist.append(cleaned_image)
+        hdulist.append(prime_hdr)
+        hdulist.append(cleaned_image)
         print 'Writing file: ', str(filewrite)+'_CLN.fits'
         hdulist.writeto(str(filewrite)+'_CLN.fits', overwrite = True)
-	print '\n~-# Image processed #-~ \n'
-    return image #Returns the cleaned image
+    print '\n~-# Image processed #-~ \n'
+    return image # Returns the cleaned image
 
 
 
@@ -169,6 +205,11 @@ def instrumental_profile(image, order_length, trc_fn, gauss_width):
 	trc_fn: The trace functions of each spectral order of the cleaned image
 	gauss_width: The distance from the center of each order to include in the Gaussian fit\n
 	"""
+	"""
+	-------------------------------------
+	Initialize an IP based on 128 columns
+	-------------------------------------
+	"""
 	sample_length = len(np.arange(int(10-gauss_width),int(10+gauss_width),1))
 	order_sample_arr = np.zeros((order_length, sample_length))
 	for x in range(order_length):
@@ -214,7 +255,7 @@ def instrumental_profile(image, order_length, trc_fn, gauss_width):
 
 
 def trace(image, xstart, ystart, xstep, yrange, nsig, filewrite, sep,
-	  write=False, odr=False, MINERVA = False, HIRES = False, cutoff = [0]):
+	  write=False, odr=False, MINERVA = False, HIRES = False, MIKE = False, cutoff = [0]):
     """
     This function returns the coordinates of the echelle orders.\n
     image: 2-D image array containg echelle orders
@@ -265,6 +306,8 @@ def trace(image, xstart, ystart, xstep, yrange, nsig, filewrite, sep,
 				dy = 8 # ----------------------------- Hard coded half-width of each order; width = 2*dy
 			elif HIRES:
 				dy = 15
+			elif MIKE:
+				dy = 6
 			for i in xrng:    #(the values in 'odr_start'),take slices of each column across the
 				column = image[ystart:image.shape[0],i-1] #horizontal range (xrng) and begin tracing the order based on
 				ypeaks = peaks(column,nsig)   #the peak coordinates found near the currently iterating loop
@@ -275,13 +318,13 @@ def trace(image, xstart, ystart, xstep, yrange, nsig, filewrite, sep,
 					if len(yvals) <= 5 and np.abs((ypeaks[y] + ystart) - odr_start[o]) <= yrange:
 						ypix = ypeaks[y]   #After the first few (5 in this case) peaks are found, this
 						break              #trend (X,Y pixel coordinates) is what is updated and referenced
-									       #for the rest of the horizontal range. The trend is an average
+											#for the rest of the horizontal range. The trend is an average
 					else:                  #pixel coordinate value for 5 preceding peak pixels
 						if len(yvals) > 5:
 							ytrend = int(np.mean(yvals[len(yvals)-5:]))
-						if np.abs((ypeaks[y] + ystart) - ytrend) <= yrange: #Checking that the next peaks are within
-							ypix = ypeaks[y]                                #range of the trend
-							break
+							if np.abs((ypeaks[y] + ystart) - ytrend) <= yrange: #Checking that the next peaks are within
+								ypix = ypeaks[y]                                #range of the trend
+								break
 	    # Fit a Gaussian to the cross-section of each order to find the center for the trace function  #
 				initial_model = models.Gaussian1D(mean=ypix, stddev=1.2, amplitude = np.max(column[ypix-dy : ypix+dy]))
 				fit_method = fitting.LevMarLSQFitter()

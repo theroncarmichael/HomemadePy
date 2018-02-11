@@ -26,4 +26,22 @@ def plot(X = [0], Y = [0], IMAGE = np.zeros((10,10)), COLOR = 'b.', MS = 2.0, LW
 		plt.colorbar(im, cax = cax)
 	pass
 
+def get_ra_dec(filename):
+	header = fits.open(str(filename))[0].header
+	ra, dec = header['RA'], header['DEC']
+	return ra, dec
 
+def get_exp_time(filename):
+	header = fits.open(str(filename))[0].header
+	exp_time = header['EXPTIME']
+	return exp_time
+
+def get_date(filename):
+	header = fits.open(str(filename))[0].header
+	utc, date = header['UTC'], header['DATE-OBS']
+	return utc, date
+
+def get_target(filename):
+	header = fits.open(str(filename))[0].header
+	name = header['TARGNAME']
+	return name
