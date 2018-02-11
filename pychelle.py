@@ -1,26 +1,26 @@
 import numpy as np
-import astropy.io.fits as fits
 import random
+import scipy.stats
 import scipy
-import pdb
-import ipdb
-import glob
+from scipy.signal import medfilt
+import astropy.io.fits as fits
+from astropy.modeling import models, fitting
+from astropy.modeling.models import custom_model
 import matplotlib.pyplot as plt
 import matplotlib.axes as ax
 import matplotlib as mpl
 from matplotlib.legend_handler import HandlerLine2D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+import pdb
+import glob
+import ipdb
 from collections import defaultdict
-from astropy.modeling import models, fitting
-from scipy.signal import medfilt
-import scipy.stats
-from astropy.modeling.models import custom_model
+######################################################################
 import warnings
 warnings.simplefilter('ignore', np.RankWarning)
 
-######################################################################
 def clean(filename, filewrite, flip, cut, scan, 
-          write = True, hdr = 0, HIRES = False):
+          write=True, hdr=0, HIRES=False):
     """
     The clean() function removes NaN values and does a row-by-row 
     subtraction of the overscan region on the image. 
@@ -41,9 +41,9 @@ def clean(filename, filewrite, flip, cut, scan,
     scan: The X-pixel value of the start of the overscan region
     write: True: Save image to ``filewrite``
     hdr: Header index of raw image in ``filename``
-    ----------
+    -------
     Returns: 2D image with overscan region trimmed off
-    ----------
+    -------
     """
     print 'Processing image...'
     image_file = fits.open(str(filename))
@@ -55,20 +55,19 @@ def clean(filename, filewrite, flip, cut, scan,
         image = np.rot90(image, k = 1)
     nrows, ncols = image.shape[0], image.shape[1]
     bias, dark = np.zeros(nrows), np.arange(cut,nrows*ncols,ncols) 
-    # dark is the last column of pixels at which this cutoff occurs
+    # ``dark`` is the last column of pixels at which this cutoff occurs
     # and only darker areas that are not part of the orders remain. 
     # For example, if there are 50 columns of darkness after the orders
-    # end, then cut-cols should equal 50 to remove these dark areas.
+    # end, then ``cut``-``cols`` should equal 50 to remove these dark areas.
     for i in range(nrows): # loop through the number of rows
-        # take row i and look the in overscan 
-        # region parsed with [scan:ncols]
+        # take row ``i`` and look the in overscan 
+        # region parsed with ``[scan:ncols]``
         bias[i] = np.median(image[[i]][0][scan:ncols]) 
     clipped_bias = scipy.stats.sigmaclip(bias) #Remove outliers
     bias_sigma = 5.0*np.std(clipped_bias[0])
     bias_median = np.median(clipped_bias[0])
     bias[bias <= (bias_median - bias_sigma)] = bias_median
     bias[bias >= (bias_median + bias_sigma)] = bias_median    
-######################################################################
     for i in range(nrows):
         # Find and subtract the median bias of each row 
         # from the overscan region
@@ -87,37 +86,49 @@ def clean(filename, filewrite, flip, cut, scan,
         prime_hdr.header['Bias_dev'] = round(bias_sigma,2)
         prime_hdr.header['Bias_min'] = round(np.min(bias))
         prime_hdr.header['Bias_max'] = round(np.max(bias))
-        cleaned_image = fits.ImageHDU(image, name = 'Processed 2D Image')
+        cleaned_image = fits.ImageHDU(image,
+                                      name = 'Processed 2D Image')
         hdulist.append(prime_hdr)
         hdulist.append(cleaned_image)
         print 'Writing file: ', str(filewrite)+'_CLN.fits'
         hdulist.writeto(str(filewrite)+'_CLN.fits', overwrite = True)
     print '\n~-# Image processed #-~ \n'
-    return image # Returns the cleaned image
+    return image
 
 
-
-def peaks(y, nsig, mean = -1, deviation = -1):
+def peaks(y, nsig, mean=-1, deviation=-1):
     """
     This functions returns the indices of the peaks in an array.
-    The height of the peaks to be considered can be controlled with ``nsig`` (how many standard deviations
+    The height of the peaks to be considered can be controlled with 
+    ``nsig`` (how many standard deviations
     above some mean a datum is).\n 
+    ----------
+    Parameters:
+    ----------
     Y: Y-values of data
-    nsig: The number of standard deviations away from the ``mean`` a ``y`` value in ``y`` must be to qualify as a peak
+    nsig: The number of standard deviations away from 
+    the ``mean`` a ``y`` value in ``y`` must be to qualify as a peak
     mean: Manually set a mean value. Default uses the mean of Y
-    deviation: Manually set the standard deviation. Default uses the standard deviation of Y
+    deviation: Manually set the standard deviation. 
+    Default uses the standard deviation of Y.
+    -------
+    Returns: Indicies at which maxima occur
+    -------
     """
     right, left = y - np.roll(y,1), y - np.roll(y,-1) 
-    #Shift the elements in ``y`` left and right and subtract this from the original to check where these values are > 0
+    # Shift the elements in ``y`` left and right and subtract 
+    # this from the original to check where these values are > 0
     pk = np.where(np.logical_and(right > 0, left > 0))[0]
     if nsig <= 0.0:
         print 'Setting ``nsig`` = 1.0 in peaks()'
         nsig = 1.0
     if nsig > 0.0:
-        if type(y) != type(np.array(0)): #Verify lists and arrays are not interacting so y can be indexed with pk
+        # Verify lists and arrays are not interacting
+        if type(y) != type(np.array(0)): 
             y = np.array(y)
         yp = y[pk]
-        if mean != -1 and deviation == -1: #Use the input mean and/or standard deviation or calculate them
+        # Use the input mean or standard deviation or calculate them
+        if mean != -1 and deviation == -1:
             mn, std = mean, np.std(yp)
         elif deviation != -1 and mean == -1:
             mn, std = np.mean(yp), deviation
@@ -125,91 +136,126 @@ def peaks(y, nsig, mean = -1, deviation = -1):
             mn, std = mean, deviation
         else:
             mn, std = np.mean(yp), np.std(yp)
-        peak = np.where(yp > mn + nsig*std)[0] #Applies ``nsig`` constraint to maxima; how separated from the noise a maximum is
-        npk = len(peak)                        #Number of maxima
-        if npk > 0:                            #If ``nsig`` is not too high and npk > 0 then these ``nsig``-constrained
-            peak_ind = []                      #maxima are added to an updated maximum index list
+        # Applies ``nsig`` constraint to maxima
+        peak = np.where(yp > mn + nsig*std)[0]
+        npk = len(peak)                        
+        if npk > 0:                            
+            # If ``nsig`` is not too high and npk > 0, these
+            # maxima are added to an updated maximum index list
+            peak_ind = []                      
             for i in peak:
                 peak_ind += [pk[i]]
         else:
             peak_ind = []
-            print "Relax peak definition; reduce ``nsig`` in peaks() or adjust ``xstart`` and ``ystart`` in trace() to avoid bias region"
+            print '''Relax peak definition; reduce ``nsig`` in peaks() 
+            or adjust ``xstart`` and ``ystart`` 
+            in trace() to avoid bias region'''
     else:
         peak_ind = pk
-    return np.array(peak_ind) #Returns the indices of ``y`` at which nsig-constrained maxima are
+    return np.array(peak_ind)
 
+def trace_fit(x, y, deg=1):
+    """"
+    This function utilizes numpy's polyfit and polyval functions 
+    to return parameters of a fit to a curve\n
+    ----------
+    Parameters:
+    ----------    
+    x: The x data input used in numpy.polyfit()
+    y: The y data input used in numpy.polyfit()
+    deg: Polynomial degree
+    -------
+    Returns: Polynomial fit, parameters for numpy.polyval()
+    -------
+    """
+    line_params = np.polyfit(x, y, deg)
+    trc_fnc = np.polyval(line_params, x)
+    return trc_fnc, line_params
 
-
-def trace_fit(x,y, deg = 1):
-	""""
-	This function utilizes numpy's polyfit and polyval functions to return parameters of a fit to a curve\n
-	x: The x data input used in numpy.polyfit()
-	y: The y data input used in numpy.polyfit()
-	deg: Polynomial degree
-	"""
-	line_params = np.polyfit(x, y, deg)
-	trc_fnc = np.polyval(line_params, x)
-	return trc_fnc, line_params
-
-def sigma_clip(x,y, deg = 1, nloops = 15, sig = 5.0):
-	"""
-	Sigma clip data based on a fit produced by numpy's polyfit and polyval functions\n
-	x: The x data input used in numpy.polyfit()
-	y: The y data input used in numpy.polyfit()
-	deg: Polynomial degree
-	nloops: Number of loops to iterate over while clipping
-	sig: Number of sigma away from the fit the data can be to be clipped
-	"""
-	y_sig_arr = np.arange(0,nloops,1.0)
-	for i in range(1,nloops):
-		line_params = np.polyfit(x, y, deg)
-		y_fit = np.polyval(line_params, x)
-		y_sig = sig*np.std(y-y_fit)
-		y_sig_arr[i] = y_sig
-		clipped_ind = np.where(np.abs(y-y_fit) <= y_sig)[0]
-		y, x = y[clipped_ind], x[clipped_ind] #Reset to te newly clipped data
-		if np.around(y_sig_arr[i],3) == np.around(y_sig_arr[i-1],3):
-			break
-	return line_params
+def sigma_clip(x, y, deg=1, nloops=15, sig=5.0):
+    """
+    Sigma clip data based on a fit produced by 
+    numpy's polyfit and polyval functions\n
+    ----------
+    Parameters:
+    ----------      
+    x: The x data input used in numpy.polyfit()
+    y: The y data input used in numpy.polyfit()
+    deg: Polynomial degree
+    nloops: Number of loops to iterate over while clipping
+    sig: Number of sigma away from the fit the data are clipped
+    -------
+    Returns: Parameters for numpy.polyval() of the clipped data
+    -------    
+    """
+    y_sig_arr = np.arange(0,nloops,1.0)
+    for i in range(1,nloops):
+        line_params = np.polyfit(x, y, deg)
+        y_fit = np.polyval(line_params, x)
+        y_sig = sig*np.std(y-y_fit)
+        y_sig_arr[i] = y_sig
+        clipped_ind = np.where(np.abs(y-y_fit) <= y_sig)[0]
+        # Reset to the newly clipped data
+        y, x = y[clipped_ind], x[clipped_ind]
+        if np.around(y_sig_arr[i],3) == np.around(y_sig_arr[i-1],3):
+            break
+    return line_params
 
 def blaze_fit(xrng, spec):
-	"""
-	This function fits a 1D blaze function to each spectral order once the order has been integrated to 1D\n
-	xrng: The x values of the data (typcially pixels along the dispersion direction of the detector)
-	spec: The integrated values of the order at each x datum
-	"""
-	if spec[0] < spec[-1]: #Find the count        #The trace of each order is fit with tf and the start of this
-	    mn = spec[0]       #values for the        #trace is where the rectified orders begin. This reduces the
-	else:                  #edges of the order    #effect of comic rays at the beginning of the order
-	    mn = spec[-1]      #to fit the blaze      #misplacing the rectified order
-	blaze = peaks(spec,0.1,mean = mn) #Find top of spectrum to approximate the blaze function
-	pks = spec[blaze]
-	blfn_params = trace_fit(blaze, pks, deg = 7)[1]
-	blfn = np.polyval(blfn_params, xrng)
-	return blfn
+    """
+    !!! Non-ideal method of fitting blaze, new one underway !!!
+    This function fits a 1D blaze function to each spectral order
+    once the order has been integrated to 1D\n
+    ----------
+    Parameters:
+    ----------
+    xrng: The x values of the data (typcially pixels along 
+    the dispersion direction of the detector)
+    spec: The integrated values of the order at each x datum
+    -------
+    Returns: Polynomial fit to blaze function
+    -------
+    """
+    # Find the count values for the edges of the order
+    if spec[0] < spec[-1]: 
+        mn = spec[0]       
+    else:                  
+        mn = spec[-1]      
+    # Find top of spectrum to approximate the blaze function
+    blaze = peaks(spec,0.1,mean = mn)
+    pks = spec[blaze]
+    blfn_params = trace_fit(blaze, pks, deg = 7)[1]
+    blfn = np.polyval(blfn_params, xrng)
+    return blfn
 
-def gauss_lorentz_hermite_prof(x, mu1 = 0.0, amp1 = 1.0, sig = 1.0, offset1 = 1.0, offset2 = 1.0,
-			       c1 = 1.0, c2 = 1.0, c3 = 1.0, c4 = 1.0, c5 = 1.0, c6 = 1.0, c7 = 1.0, c8 = 1.0, c9 = 1.0,
-			       amp2 = 1.0, gamma = 0.5, mu2 = 0.1):
-	gauss = amp1 * np.exp(-0.5 * (( x - mu1 ) / sig )**2) + offset1
-	lorentz = amp2 * (0.5 * gamma) / (( x - mu2 )**2 + (0.5 * gamma)**2) + offset2
-	h_poly = c1*x + c2*x**2 + c3*x**3 + c4*x**4 + c5*x**5 + c6*x**6 + c7*x**7 + c8*x**8 + c9*x**9
-	return (h_poly) * gauss + lorentz
+######################################################################
+def gauss_lorentz_hermite_prof(x, mu1=0.0, amp1=1.0, sig=1.0,
+                               offset1=1.0, offset2=1.0, c1=1.0,
+                               c2=1.0, c3=1.0, c4=1.0, c5=1.0,
+                               c6=1.0, c7=1.0, c8=1.0, c9=1.0, 
+                               amp2=1.0, gamma=0.5, mu2=0.1):
+    gauss = (amp1 * np.exp(-0.5 * ((x - mu1) / sig)**2) 
+             + offset1)
+    lorentz = (amp2 * (0.5 * gamma) / ((x - mu2)**2 + (0.5 * gamma)**2) 
+               + offset2)
+    h_poly = (c1*x + c2*x**2 + c3*x**3 + c4*x**4 + c5*x**5
+              + c6*x**6 + c7*x**7 + c8*x**8 + c9*x**9)
+    return h_poly * gauss + lorentz
+######################################################################
 
 def instrumental_profile(image, order_length, trc_fn, gauss_width):
-	""" 
-	This function is the algorithm for creating a super-sampled profile of each spectral order.
-	Sample the trace at each column to produce a profile shape for the trace using the trace function.\n
-	image: The cleaned echelle image
-	order_length: The length of the dispersion direction (number of x pixels)
-	trc_fn: The trace functions of each spectral order of the cleaned image
-	gauss_width: The distance from the center of each order to include in the Gaussian fit\n
-	"""
-	"""
-	-------------------------------------
-	Initialize an IP based on 128 columns
-	-------------------------------------
-	"""
+    """ 
+    This function is the algorithm for creating a super-sampled profile of each spectral order.
+    Sample the trace at each column to produce a profile shape for the trace using the trace function.\n
+    image: The cleaned echelle image
+    order_length: The length of the dispersion direction (number of x pixels)
+    trc_fn: The trace functions of each spectral order of the cleaned image
+    gauss_width: The distance from the center of each order to include in the Gaussian fit\n
+
+    -------------------------------------
+    Initialize an IP based on 128 columns
+    -------------------------------------
+    """
 	sample_length = len(np.arange(int(10-gauss_width),int(10+gauss_width),1))
 	order_sample_arr = np.zeros((order_length, sample_length))
 	for x in range(order_length):
