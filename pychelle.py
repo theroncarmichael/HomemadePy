@@ -17,7 +17,7 @@ from matplotlib.legend_handler import HandlerLine2D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import pdb
 import glob
-
+######################################################################
 import warnings
 warnings.simplefilter('ignore', np.RankWarning)
 
@@ -47,7 +47,7 @@ def clean(filename, filewrite, flip, cut, scan,
     -------
     2D array, image with overscan region trimmed off
     """
-    print 'Processing image...'
+    print('Processing image...')
     image_file = fits.open(str(filename))
     image = image_file[hdr].data.astype(float)
     image_file.close()
@@ -68,8 +68,8 @@ def clean(filename, filewrite, flip, cut, scan,
     clipped_bias = scipy.stats.sigmaclip(bias) #Remove outliers
     bias_sigma = 5.0*np.std(clipped_bias[0])
     bias_median = np.median(clipped_bias[0])
-    bias[bias <= (bias_median - bias_sigma)] = bias_median
-    bias[bias >= (bias_median + bias_sigma)] = bias_median    
+    bias[bias <= (bias_median-bias_sigma)] = bias_median
+    bias[bias >= (bias_median+bias_sigma)] = bias_median    
     for i in range(nrows):
         # Find and subtract the median bias of each row 
         # from the overscan region
@@ -89,12 +89,12 @@ def clean(filename, filewrite, flip, cut, scan,
         prime_hdr.header['Bias_min'] = round(np.min(bias))
         prime_hdr.header['Bias_max'] = round(np.max(bias))
         cleaned_image = fits.ImageHDU(image,
-                                      name = 'Processed 2D Image')
+                                      name='Processed 2D Image')
         hdulist.append(prime_hdr)
         hdulist.append(cleaned_image)
-        print 'Writing file: ', str(filewrite)+'_CLN.fits'
-        hdulist.writeto(str(filewrite)+'_CLN.fits', overwrite = True)
-    print '\n~-# Image processed #-~ \n'
+        print('Writing file: ', str(filewrite)+'_CLN.fits')
+        hdulist.writeto(str(filewrite)+'_CLN.fits', overwrite=True)
+    print('\n~-# Image processed #-~ \n')
     return image
 
 
@@ -118,12 +118,12 @@ def peaks(y, nsig, mean=-1, deviation=-1):
     -------
     1D array, indices at which maxima occur
     """
-    right, left = y - np.roll(y,1), y - np.roll(y,-1) 
+    right, left = y-np.roll(y,1), y-np.roll(y,-1) 
     # Shift the elements in ``y`` left and right and subtract 
     # this from the original to check where these values are > 0
     pk = np.where(np.logical_and(right > 0, left > 0))[0]
     if nsig <= 0.0:
-        print 'Setting ``nsig`` = 1.0 in peaks()'
+        print('Setting ``nsig`` = 1.0 in peaks()')
         nsig = 1.0
     if nsig > 0.0:
         # Verify lists and arrays are not interacting
@@ -140,7 +140,7 @@ def peaks(y, nsig, mean=-1, deviation=-1):
         else:
             mn, std = np.mean(yp), np.std(yp)
         # Applies ``nsig`` constraint to maxima
-        peak = np.where(yp > mn + nsig*std)[0]
+        peak = np.where(yp > mn+nsig*std)[0]
         npk = len(peak)                        
         if npk > 0:                            
             # If ``nsig`` is not too high and npk > 0, these
@@ -150,9 +150,9 @@ def peaks(y, nsig, mean=-1, deviation=-1):
                 peak_ind += [pk[i]]
         else:
             peak_ind = []
-            print '''Relax peak definition; reduce ``nsig`` in peaks() 
-            or adjust ``xstart`` and ``ystart`` 
-            in trace() to avoid bias region'''
+            print('Relax peak definition; reduce ``nsig`` in peaks()' 
+            'or adjust ``xstart`` and ``ystart``' 
+            'in trace() to avoid bias region')
     else:
         peak_ind = pk
     return np.array(peak_ind)
@@ -237,7 +237,6 @@ def blaze_fit(xrng, spec):
     blfn_params = trace_fit(blaze, pks, deg = 7)[1]
     blfn = np.polyval(blfn_params, xrng)
     return blfn
-
 ######################################################################
 def gauss_lorentz_hermite_prof(x, mu1=0.0, amp1=1.0, sig=1.0,
                                offset1=1.0, offset2=1.0, c1=1.0,
@@ -252,7 +251,6 @@ def gauss_lorentz_hermite_prof(x, mu1=0.0, amp1=1.0, sig=1.0,
               + c6*x**6 + c7*x**7 + c8*x**8 + c9*x**9)
     return h_poly * gauss + lorentz
 ######################################################################
-
 def instrumental_profile(image, order_length, trc_fn, gauss_width):
     """ 
     --------------------------------------------
@@ -279,15 +277,15 @@ def instrumental_profile(image, order_length, trc_fn, gauss_width):
     (each 1-pixel wide, ``gauss_width`` tall cross section),
     3) & 4) A sorted version of 1)/2), necessary for modeling
     """
-    sample_length = len(np.arange(int(10 - gauss_width),
-                                  int(10 + gauss_width),1))
+    sample_length = len(np.arange(int(10-gauss_width),
+                                  int(10+gauss_width),1))
     order_sample_arr = np.zeros((order_length, sample_length))
     for x in range(order_length):
-        xdata = np.arange(int(trc_fn[x] - gauss_width),
-                          int(trc_fn[x] + gauss_width),1) 
+        xdata = np.arange(int(trc_fn[x]-gauss_width),
+                          int(trc_fn[x]+gauss_width),1) 
         # Select the area along the order to sample
-        ydata_ind = np.arange(int(trc_fn[x] - gauss_width),
-                              int(trc_fn[x] + gauss_width),1)
+        ydata_ind = np.arange(int(trc_fn[x]-gauss_width),
+                              int(trc_fn[x]+gauss_width),1)
         ydata = image[:,x][ydata_ind]
         order_sample_arr[x,:] = ydata
         # Fit a Gaussian to the profile of the order at each column 
@@ -301,7 +299,7 @@ def instrumental_profile(image, order_length, trc_fn, gauss_width):
         # the Levenburg Marquardt Least-Squares algorithm
         odr_prof = fit_method(initial_model, xdata, ydata)
         gauss_int = np.sum(odr_prof(xdata))
-        order_sample_arr[x,:] = ydata / gauss_int # Normalize
+        order_sample_arr[x,:] = ydata/gauss_int # Normalize
     # Initialize arrays for super-sampled Y coordinates ``xrng_arr`` 
     # and counts at each Y coordinate 
     xrng_arr = np.zeros((len(trc_fn), 2*gauss_width))
@@ -311,8 +309,8 @@ def instrumental_profile(image, order_length, trc_fn, gauss_width):
     x_shift = pix_order[0] - gauss_width
     rect_order = pix_order - trc_fn
     for i in range(len(trc_fn)):
-        xrng_fit = np.arange(rect_order[i] - gauss_width,
-                             rect_order[i] + gauss_width,1.0)
+        xrng_fit = np.arange(rect_order[i]-gauss_width,
+                             rect_order[i]+gauss_width,1.0)
         xrng_arr[i] = xrng_fit
         order_prof[i] = order_sample_arr[i,:]
     xrng_arr -= np.min(xrng_arr)
@@ -323,8 +321,8 @@ def instrumental_profile(image, order_length, trc_fn, gauss_width):
         yrng_arr[t,:] = t
     # Store the super-sampled profile shapes by column and
     # as a sorted continuous function 
-    x_long = xrng_arr.reshape((len(trc_fn) * 2*gauss_width))
-    y_long = order_prof.reshape((len(trc_fn) * 2*gauss_width))
+    x_long = xrng_arr.reshape((len(trc_fn)*2*gauss_width))
+    y_long = order_prof.reshape((len(trc_fn)*2*gauss_width))
     sorted_ind = np.argsort(x_long)
     x_sorted = x_long[sorted_ind]
     y_sorted = y_long[sorted_ind]
@@ -367,11 +365,11 @@ def trace(image, xstart, ystart, xstep, yrange, nsig, filewrite, sep,
     Returns:
     -------
     Tuple with 2 arrays: 1) an N x L size array where N = number 
-    of ordrs, L = length of the image, this array contains the X/Y
+    of orders, L = length of the image, this array contains the X/Y
     coordinates of the centers of the orders. 2) returns the same
     information as ``pychelle.instrumental_profile()``
     """
-    print 'Locating spectral orders on cleaned image...'
+    print('Locating spectral orders on cleaned image...')
     xrng, yvals = np.arange(1, image.shape[1]+1, xstep), []
     counts, centroids = [], []
     background_levels = []
@@ -396,19 +394,19 @@ def trace(image, xstart, ystart, xstep, yrange, nsig, filewrite, sep,
     if HIRES and np.abs(odr_start[-1] - image.shape[0]) <= 10:
         odr_start = list(np.delete(odr_start, -1))
     trc_cont = raw_input(str(len(odr_start))
-                         +" orders found, is this accurate? (y/n): ")
+                         +' orders found, is this accurate? (y/n): ')
     while trc_cont != 'y' and trc_cont != 'n': 
         trc_cont = raw_input('Enter y or n: ')
         if trc_cont == 'y' or trc_cont == 'n': break
     if trc_cont == 'n':
-        print 'Starting Y-pixel coordinates of orders: ', odr_start
-        print '''Exiting pychelle.trace(). Adjust ``sep``, ``nsig``,
-        or ``cutoff`` to locate the correct number of full orders.\n'''
+        print('Starting Y-pixel coordinates of orders: ', odr_start)
+        print('Exiting pychelle.trace(). Adjust ``sep``, ``nsig``,'
+        'or ``cutoff`` to locate the correct number of full orders.\n')
         return [], [], [], []
     elif trc_cont == 'y':
-        print 'Starting Y-pixel coordinates of orders: ', odr_start
-        print str(len(odr_start))+''' orders found, scanning each 
-        column for the pixel coordinates of peaks...\n'''
+        print('Starting Y-pixel coordinates of orders: ', odr_start)
+        print(str(len(odr_start))+' orders found, scanning each' 
+        'column for the pixel coordinates of peaks...\n')
         # Algorithm for order definition via a trace function
         prof_shape, end_trace = [], False
         for o in range(len(odr_start)):
@@ -457,7 +455,7 @@ def trace(image, xstart, ystart, xstep, yrange, nsig, filewrite, sep,
                                                          ypix+dy]))
                 fit_method = fitting.LevMarLSQFitter()
                 xaxis = np.arange(ypix-dy, ypix+dy, 1)
-                yaxis = column[ypix-dy : ypix+dy]
+                yaxis = column[ypix-dy:ypix+dy]
                 # If ``column`` is indexed at an integer > it's length, 
                 # the order is running off the edge of the detector
                 if len(xaxis) > len(yaxis):
@@ -485,8 +483,8 @@ def trace(image, xstart, ystart, xstep, yrange, nsig, filewrite, sep,
                     plt.close()
                 '''
                 fit_centroid = float(odr_prof.mean[0])
-                centroids += [fit_centroid + ystart]
-                yvals += [ypix + ystart]
+                centroids += [fit_centroid+ystart]
+                yvals += [ypix+ystart]
                 counts += [column[ypix]]
                 background_levels += [background_level]
                 '''
@@ -545,17 +543,19 @@ def trace(image, xstart, ystart, xstep, yrange, nsig, filewrite, sep,
             plt.legend(loc = 2), plt.show()
             pdb.set_trace()
             '''
-######################################################################
             # Reset the arrays for the next order in loop
             counts, yvals = [], []
             centroids, background_levels = [], []
         if write:
             hdulist = fits.HDUList()
-            f1 = fits.ImageHDU(trace_arr, name = 'Trace function')
-            f2 = fits.ImageHDU(prof_shape, name = 'Profile fitting')
-            hdulist.append(f1), hdulist.append(f2)
+            trace_array = fits.ImageHDU(trace_arr, 
+                                        name='Trace function')
+            profile_shape = fits.ImageHDU(prof_shape, 
+                                          name='Profile fitting')
+            hdulist.append(trace_array)
+            hdulist.append(profile_shape)
             hdulist.writeto(str(filewrite)
-                            +'_TRC.fits', overwrite = True)
+                            +'_TRC.fits', overwrite=True)
             print('Writing file '+str(filewrite)+'_TRC.fits')
             hdulist.close()
             print('\n ~-# Spectral orders traced: '
@@ -569,157 +569,163 @@ def flat(filepath, filewrite, hdr, window, write=True):
     ----------
     Parameters:
     ----------    
-    filepath: Location of raw data files
-    filewrite: User-designated name of reduced data file
-    hdr: Header index of raw image in ``filename``
-    window: Size of the smoothing window used in scipy.signal.medfilt()
-    write: True: Save image to ``filewrite`` / False: Do not save to ``filewrite``
+    filepath: String, name or path of raw data files
+    filewrite: String, user-designated name or path of reduced data file
+    hdr: Integer, FITS header index of raw image in ``filename``
+    window: Integer, size of the smoothing window used 
+    in scipy.signal.medfilt()
+    write: Boolean, True: Save image to ``filewrite``
     -------
     Returns:
-    -------  
+    -------
+    Two 2D arrays, 1) Normalized flat field image
+    2) Averaged flat field image
     """
-    print 'Creating normalized flat image...'
+    print('Creating normalized flat image...')
     file_no = np.sort(glob.glob(filepath+'*fits'))
     flat_img = np.zeros(fits.open(file_no[0])[hdr].data.shape)
     for f in range(len(file_no)):
-        flat_img += fits.open(str(file_no[f]))[hdr].data #/ float(len(file_no)) 
-    flat_img /= float(len(file_no)) #Average the flat images
-    model_flat = np.zeros(flat_img.shape) #Create an array that is the same shape as the image
+        flat_img += fits.open(str(file_no[f]))[hdr].data
+    flat_img /= float(len(file_no)) # Average the flat images
+    model_flat = np.zeros(flat_img.shape)
     for i in range(flat_img.shape[1]):
         flat_col = flat_img[:,i]
         med_flat = scipy.signal.medfilt(flat_col, window)
-        #plt.title('Cross section of HIRES flat image', fontsize = 16), plt.xlabel('Cross-dispersion direction (row number)', fontsize = 14), plt.ylabel('Counts', fontsize = 14)
-        #plt.plot(flat_col, color = 'black', lw = '1.0'), plt.xlim(0, flat_img.shape[0])
-        #plt.plot(med_flat, color = 'royalblue', lw = 2.0, label = 'Median filtered cross section'), plt.legend()
-        #plt.show()
         #pdb.set_trace()
         if len(np.where(med_flat <= 0)[0]) > 0:
             med_flat[np.where(med_flat <= 0)[0]] = 1.0
             #pdb.set_trace()
-        model_flat[:,i] = med_flat
-    print 'Dividing the trimmed flat by the median smoothed model flat...'
+        model_flat[:,i] = med_flat    
+    print('Dividing the trimmed flat by '
+          'the median smoothed model flat...')
     flat_img[flat_img <= 0.0] = 1.0
-    norm_flat = flat_img / model_flat #The quantum efficiency based on the modelling method
-    #plt.plot( np.where(flat_img == 0)[1], np.where(flat_img == 0)[0], 'go' ) 
-    #plt.xlim(-100, 4200), plt.ylim(-50, 700)
-    #plt.axhline(y = flat_img.shape[0]), plt.axhline(y = 0), plt.axvline(x = 0), plt.axvline(x = flat_img.shape[1])
-    #plt.show()
+    # The quantum efficiency based on the modelling method
+    norm_flat = flat_img/model_flat
     #pdb.set_trace()
     if write:
-        hdu = fits.HDUList()
-        flat = fits.ImageHDU(flat_img, name = 'Averaged flat')
-        norm = fits.ImageHDU(norm_flat, name = 'Normalized Flat')
-        hdu.append(norm), hdu.append(flat)
-        print 'Writing file: ', str(filewrite)+'_FLT.fits'
-        hdu.writeto(str(filewrite)+'_FLT.fits', overwrite = True)
-    print '\n~-# Normalized flat image created #-~\n'
+        hdulist = fits.HDUList()
+        flat = fits.ImageHDU(flat_img, name='Averaged flat')
+        norm = fits.ImageHDU(norm_flat, name='Normalized Flat')
+        hdulist.append(norm)
+        hdulist.append(flat)
+        print('Writing file: ', str(filewrite)+'_FLT.fits')
+        hdulist.writeto(str(filewrite)+'_FLT.fits', overwrite=True)
+    print('\n~-# Normalized flat image created #-~\n')
     return norm_flat, flat_img
-    #Returns the input flat image, the two quantum efficiencies, and the two modelling methods
 
 
 def spectext(image, nfib, trace_arr, yspread, filewrite, cal=False):
     """
-    This function integrates an echelle image along the trace function of each order to collapse it from 2D to 1D.
+    This function integrates an echelle image along the trace function 
+    of each order to collapse it from 2D to 1D.
     ----------
     Parameters:
     ----------    
-    image: 2-D image array containing echelle orders
-    nfib: Number of fibers
-    trace_arr: 2-D array of number of columns x number of orders containing the coordinates of the orders
-    yspread: Approximate width of order. Calibration spectra are typically wider than science spectra
-    filewrite: User-designated name of reduced data file
-    cal: True if the spectrum is a calibration spectrum
+    image: 2D array, image containing echelle orders
+    nfib: Integer, number of fibers (not slit fed)
+    trace_arr: 2D array, number of columns timmes number of orders 
+    containing the coordinates of the orders
+    yspread: Integer, approximate width of order. 
+    Calibration spectra can be wider than science spectra
+    filewrite: String, user-designated name or path of reduced data file
+    cal: Boolean, True: the spectrum is a calibration spectrum
     -------
     Returns:
     -------
+    One 1D array & two 2D arrays, 1) The integer pixel values along the
+    dispersion direction (length) of the image
+    2) The spectrum by each order; size N x L array 
+    where N = number of orders, L = length of the image
+    3) The blaze-normalized spectrum by each order; size N x L array 
+    where N = number of orders, L = length of the image
     """
-    hdu = fits.HDUList()
+    hdulist = fits.HDUList()
     for f in range(1,nfib+1):
-        trace_path, xrng = trace_arr[f-1::nfib,:], np.arange(0,image.shape[1],1)
-        signal, spec_flat = np.zeros((len(trace_path),len(xrng))), np.zeros((len(trace_path),len(xrng)))
+        trace_path = trace_arr[f-1::nfib,:]
+        xrng = np.arange(0,image.shape[1],1)
+        signal = np.zeros((len(trace_path),len(xrng)))
+        spec_flat = np.zeros((len(trace_path),len(xrng)))
     if nfib == 1:
-        print 'Using trace coordinates to locate spectrum along each order...'
+        print('Using trace coordinates to locate ' 
+              'spectrum along each order...')
     else:
-        print 'Using trace coordinates to locate spectrum on fiber '+str(f)+' of '+str(nfib)+'...'
-        # Integrate the counts over a length of the column along each point in the trace function #
+        print('Using trace coordinates to locate spectrum on fiber '
+              +str(f)+' of '+str(nfib)+'...')
+    # Integrate the counts over a length of the column along 
+    # the trace function
     for j in range(len(trace_path)):
         for i in xrng:
-            dy = np.arange(trace_path[j][i]-yspread,trace_path[j][i]+yspread,1)
+            dy = np.arange(trace_path[j][i]-yspread,
+                           trace_path[j][i]+yspread,1)
             dy_int = dy.astype(int)
             bottom, top, out_rng = 0, image.shape[0], []
-            for p in range(len(dy_int)): #Remove indices beyond the range of the detector
+            # Remove indices beyond the range of the detector
+            for p in range(len(dy_int)):
                 if dy_int[p] <= bottom+1:
                     out_rng += [p]
                 if dy_int[p] >= top-1:
                     out_rng += [p]
-            dy_int, dy = np.delete(dy_int,out_rng), np.delete(dy,out_rng)
+            dy_int = np.delete(dy_int,out_rng) 
+            dy = np.delete(dy,out_rng)
             if cal == False:
-                cts_int_rng = image[dy_int,i] - np.median(image[dy_int,i]) #Remove sky background (if using slit-fed, otherwise, simply removes inter-order background)
+                # Remove sky background if using slit-fed, otherwise, 
+                # simply removes inter-order background
+                cts_int_rng = image[dy_int,i]-np.median(image[dy_int,i])
             elif cal == True:
                 cts_int_rng = image[dy_int,i]
             '''
-            custom_gh_model = custom_model(gauss_lorentz_hermite_prof)
-            gh_model = custom_gh_model(mu1 = len(cts_int_rng)/2., amp1 = np.max(cts_int_rng), sig = 1.0, offset1 = 0.0, offset2 = 1.0, c1 = 0.0, c2 = 0.0, c3 = 0.0, c4 = 0.0, c5 = 0.0, c6 = 0.0, c7 = 0.0, c8 = 0.0, c9 = 0.0, amp2 = np.max(cts_int_rng), gamma = 1.2, mu2 = len(cts_int_rng)/2.)
-            fit_method = fitting.LevMarLSQFitter()
-            xaxis, yaxis = np.arange(0, len(cts_int_rng), 1), cts_int_rng
-            x_fine = np.arange(0,len(cts_int_rng), 0.001)
-            odr_prof = fit_method(gh_model, xaxis, yaxis) #Fit X and Y data using the initialized 1D Gaussian
-            resid = yaxis - odr_prof(xaxis)
-            cosmic_detection = np.where(np.abs(resid) >= np.abs(5.0*np.std(resid))) 
-            if len(cosmic_detection[0]) >= 1: 
-                print xaxis[cosmic_detection]
-                plt.figure(1)
-                plt.plot(xaxis, yaxis, 'bo') 
-                plt.plot(x_fine, odr_prof(x_fine), 'r')
-                plt.figure(2)
-                plt.plot(xaxis, resid, 'ko')
-                plt.axhline(0.0, color= 'b')
-                plt.axhline(-5.0*np.std(resid), color= 'r')
-                plt.axhline(5.0*np.std(resid), color= 'r')
-                yaxis[cosmic_detection] = odr_prof(xaxis)[cosmic_detection]
-                plt.figure(2)
-                plt.plot(xaxis, yaxis, 'bo') 
-                plt.plot(x_fine, odr_prof(x_fine), 'r')
-                
-                plt.show()
-                pdb.set_trace()
+            ------------------------------------------------
+            To Do: Reject cosmic rays based on 128-column IP
+            ------------------------------------------------
             '''
-            #print cts_int_rng
-            #print image[dy_int[-1],i]
-            #print image[dy_int[0],i]
-            #pdb.set_trace()
-            up_pix = np.abs(dy[-1]-dy_int[-1])*image[dy_int[-1],i]#image[dy_int[-1]+1,i] ########################################## 
-        #Take the lower fraction of counts from the uppermost pixel cut through by dy
-            low_pix = (1 - np.abs(dy[0]-dy_int[0]))*image[dy_int[0],i] 
-        #Take the upper fraction of counts from the lowermost pixel cut through by dy
+            # Take the lower fraction of counts from 
+            # the uppermost pixel cut through by ``dy``
+            up_pix = (np.abs(dy[-1]-dy_int[-1])
+                      *image[dy_int[-1],i])
+            #          image[dy_int[-1]+1,i]
+            # Take the upper fraction of counts from 
+            # the lowermost pixel cut through by ``dy``
+            low_pix = ((1-np.abs(dy[0]-dy_int[0]))
+                       *image[dy_int[0],i])
             if len(scipy.integrate.cumtrapz(cts_int_rng,dy_int)) == 0:
-                'Spectrum integration paused'
+                print('Spectrum integration paused')
                 pdb.set_trace()
-            signal[j,i] = scipy.integrate.cumtrapz(cts_int_rng,dy_int)[-1] + up_pix + low_pix
-        # Blaze fitting #
-        if cal == True: #Fit a blaze function to the continuum of an emission arclamp
-            blaze_pars = sigma_clip(xrng, signal[j], deg = 7, nloops = 30)
+            signal[j,i] = (scipy.integrate.cumtrapz(cts_int_rng,dy_int)[-1]
+                           + up_pix + low_pix)
+        # Fit a blaze function to the continuum of an emission arclamp
+        if cal == True:
+            blaze_pars = sigma_clip(xrng, signal[j], deg=7, nloops=30)
             blaze = np.polyval(blaze_pars, xrng)
             low = np.where(signal[j] <= blaze)
-            blaze_pars_new = sigma_clip(xrng[low], signal[j][low], deg = 7, nloops = 30)
+            blaze_pars_new = sigma_clip(xrng[low], signal[j][low],
+                                        deg=7, nloops=30)
             blfn = np.polyval(blaze_pars_new, xrng)
-            spec_flat[j] = (signal[j]/blfn)
+            spec_flat[j] = (signal[j]/blfn)            
         else:
-            if signal[j][0] < signal[j][-1]: #Find the count      #The trace of each order is fit with tf and the
-                mn = signal[j][0]        #values for the      #start of this trace is where the rectified orders
-            else:                            #edges of the order  #begin. This reduces the effect of cosmic rays at the
-                mn = signal[j][-1]       #to fit the blaze    #left edge of the order misplacing the starting point
-            blaze = peaks(signal[j],0.1,mean = mn) #Find top of spectrum to approximate the blaze function
+            '''
+            ---------------------------------------------------------
+            To Do: Substitute lines 707-714 with pychelle.blaze_fit()
+            ---------------------------------------------------------
+            '''
+            if signal[j][0] < signal[j][-1]:
+                mn = signal[j][0]
+            else:
+                mn = signal[j][-1]
+            blaze = peaks(signal[j],0.1,mean = mn)
             pks = signal[j][blaze]
-            blazed = trace_fit(blaze, pks,7) #Fit blaze function to top of spectrum
+            blazed = trace_fit(blaze, pks,7)
             blfn = np.polyval(blazed[1], xrng)
             spec_flat[j] = (signal[j]/blfn)
-    spec_f = fits.ImageHDU(spec_flat, name = 'Blaze-corrected spectrum') 
-    spec = fits.ImageHDU(signal, name = '1D Spectrum')
-    xpix = fits.ImageHDU(xrng, name = 'X pixel')
-    hdu.append(xpix), hdu.append(spec), hdu.append(spec_f)
-    print 'Writing file: ', str(filewrite)+'_SPEC.fits'
-    hdu.writeto(str(filewrite)+'_SPEC.fits', overwrite = True)
-    hdu.close()
-    print '\n ~-# Spectrum extracted #-~\n'
+    spec_f = fits.ImageHDU(spec_flat, name='Blaze-corrected spectrum') 
+    spec = fits.ImageHDU(signal, name='1D Spectrum')
+    xpix = fits.ImageHDU(xrng, name='X pixel')
+    hdulist.append(xpix)
+    hdulist.append(spec)
+    hdulist.append(spec_f)
+    print('Writing file: ', str(filewrite)+'_SPEC.fits')
+    hdulist.writeto(str(filewrite)+'_SPEC.fits', overwrite=True)
+    hdulist.close()
+    print('\n ~-# Spectrum extracted #-~\n')
     return xrng, signal, spec_flat
+
+######################################################################
