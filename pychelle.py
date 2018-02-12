@@ -17,9 +17,7 @@ from matplotlib.legend_handler import HandlerLine2D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import pdb
 import glob
-import ipdb
-from collections import defaultdict
-######################################################################
+
 import warnings
 warnings.simplefilter('ignore', np.RankWarning)
 
@@ -27,12 +25,10 @@ def clean(filename, filewrite, flip, cut, scan,
           write=True, hdr=0, HIRES=False):
     """
     The clean() function removes NaN values and does a row-by-row 
-    subtraction of the overscan region on the image. 
+    subtraction of the overscan region of the image. 
     The wavelength dispersion direction should approximately go 
-    from left to right (use flip = T if 
+    from left to right (use flip = True if 
     the echelle orders are vertical). 
-    This function returns a 2D image with the overscan region 
-    trimmed away.
     For slit-fed echelle, sky-subtraction is accounted for in 
     pychelle.trace().
     ----------
@@ -103,9 +99,9 @@ def clean(filename, filewrite, flip, cut, scan,
 
 def peaks(y, nsig, mean=-1, deviation=-1):
     """
-    This functions returns the indices of the peaks in an array.
-    The height of the peaks to be considered can be controlled with 
-    ``nsig`` (how many standard deviations
+    This functions returns the indices of the maxima of an array.
+    The height of the peaks/maxima to be considered can be 
+    controlled with ``nsig`` (how many standard deviations
     above some mean a datum is). 
     ----------
     Parameters:
@@ -160,9 +156,10 @@ def peaks(y, nsig, mean=-1, deviation=-1):
     return np.array(peak_ind)
 
 def trace_fit(x, y, deg=1):
-    """"
-    This function utilizes numpy's polyfit and polyval functions 
-    to return parameters of a fit to a curve
+    """
+    This function utilizes numpy's ``polyfit`` and 
+    ``polyval`` functions to return parameters of a 
+    fit to a curve
     ----------
     Parameters:
     ----------    
@@ -180,8 +177,8 @@ def trace_fit(x, y, deg=1):
 
 def sigma_clip(x, y, deg=1, nloops=15, sig=5.0):
     """
-    Sigma clip data based on a fit produced by 
-    numpy's ``polyfit`` and ``polyval`` functions
+    Sigma clip data with criteria from a fit produced
+    by numpy's ``polyfit`` and ``polyval`` functions
     ----------
     Parameters:
     ----------      
@@ -366,25 +363,28 @@ def trace(image, xstart, ystart, xstep, yrange, nsig, filewrite, sep,
     information as ``pychelle.instrumental_profile()``
     -------   
     """
-######################################################################
     print 'Locating spectral orders on cleaned image...'
     xrng, yvals = np.arange(1, image.shape[1]+1, xstep), []
     counts, centroids = [], []
     background_levels = []
-    rect_image, blze_image = np.zeros(image.shape), np.zeros(image.shape)
+    rect_image = np.zeros(image.shape) 
+    blze_image = np.zeros(image.shape)
     odr_start = peaks(image[ystart:image.shape[0], xstart], nsig)
     odr_ind = []
-    if odr: #Use input list of order starting locations
+    if odr: # Use input list of order starting locations
         odr_start = odr
-    if MINERVA == True: #Account for the curve in orders across the detector cutting off on the edge and remove them
+    if MINERVA == True: 
+        # Account for the curve in orders across the detector cutting off 
+        # on the edge and remove them
         #cutoff_order =  np.where(np.array(odr_start) - 70 < 0)[0]
         odr_start = np.delete(odr_start, cutoff)
-    #Create an empty array for the trace function of each order
+    # Create an empty array for the trace function of each order
     trace_arr = np.zeros((len(odr_start),image.shape[1]/xstep))
     for i in range(len(odr_start)):
         if np.abs(odr_start[i] - odr_start[i-1]) <= sep and len(odr_start) > 1: #Remove pixel-adjacent peak measurements
             odr_ind += [i]                                                      #This avoids double-counting a peak
     odr_start = list(np.delete(odr_start,odr_ind))                              
+######################################################################
     if HIRES and np.abs(odr_start[-1] - image.shape[0]) <= 10:
         odr_start = list(np.delete(odr_start, -1))
     trc_cont = raw_input(str(len(odr_start))+" orders found, is this accurate? (y/n): ")
