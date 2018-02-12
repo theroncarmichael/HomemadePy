@@ -1,6 +1,11 @@
 """
 The script contains the primary functions to reduce 2D echelle images
-to 1D spectra.           
+to 1D spectra.
+-----------------
+List of functions:
+-----------------
+clean(), peaks(), trace(), flat(), specext(),
+instrumental_profile(), trace_fit(), blaze_fit(), sigma_clip()
 """
 import numpy as np
 import random
@@ -423,7 +428,7 @@ def trace(image, xstart, ystart, xstep, yrange, nsig, filewrite, sep,
                 column = image[ystart:image.shape[0],i-1] 
                 ypeaks = peaks(column,nsig)
                 if len(ypeaks) == 0:
-                    print('Starting too close to edge;
+                    print('Starting too close to edge;'
                           'increase ``xstart`` in trace()\n')
                     break
                 for y in range(len(ypeaks)):
