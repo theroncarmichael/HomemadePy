@@ -1,3 +1,7 @@
+"""
+The script contains the primary functions to reduce 2D echelle images
+to 1D spectra.           
+"""
 import numpy as np
 import random
 import scipy.stats
@@ -34,15 +38,16 @@ def clean(filename, filewrite, flip, cut, scan,
     ----------
     Parameters:
     ----------
-    filename: Name of raw data file
-    filewrite: User-designated name of reduced data file
-    flip: True: Rotated image by 90 degrees with numpy.rot90()
-    cut: X-pixel value image is trimmed to
-    scan: The X-pixel value of the start of the overscan region
-    write: True: Save image to ``filewrite``
-    hdr: Header index of raw image in ``filename``
+    filename: String, name or path of raw data file
+    filewrite: String, user-designated name or path of 
+    reduced data file
+    flip: Boolean, True: Rotated image with numpy.rot90()
+    cut: Integer, X-pixel value image is trimmed to
+    scan: Integer, the X-pixel start of the overscan region
+    write: Boolean, True: Save image to ``filewrite``
+    hdr: Integer, FITS header index of raw image in ``filename``
     -------
-    Returns: 2D image with overscan region trimmed off
+    Returns: 2D array, image with overscan region trimmed off
     -------
     """
     print 'Processing image...'
@@ -101,18 +106,18 @@ def peaks(y, nsig, mean=-1, deviation=-1):
     This functions returns the indices of the peaks in an array.
     The height of the peaks to be considered can be controlled with 
     ``nsig`` (how many standard deviations
-    above some mean a datum is).\n 
+    above some mean a datum is). 
     ----------
     Parameters:
     ----------
-    Y: Y-values of data
-    nsig: The number of standard deviations away from 
+    Y: 1D array, Y-values of data
+    nsig: Float, the number of standard deviations away from 
     the ``mean`` a ``y`` value in ``y`` must be to qualify as a peak
-    mean: Manually set a mean value. Default uses the mean of Y
-    deviation: Manually set the standard deviation. 
-    Default uses the standard deviation of Y.
+    mean: Float, manually set a mean value. Default uses the mean of Y
+    deviation: Float, manually set the standard deviation default uses
+    the standard deviation of Y.
     -------
-    Returns: Indicies at which maxima occur
+    Returns: 1D array, indices at which maxima occur
     -------
     """
     right, left = y - np.roll(y,1), y - np.roll(y,-1) 
@@ -157,15 +162,16 @@ def peaks(y, nsig, mean=-1, deviation=-1):
 def trace_fit(x, y, deg=1):
     """"
     This function utilizes numpy's polyfit and polyval functions 
-    to return parameters of a fit to a curve\n
+    to return parameters of a fit to a curve
     ----------
     Parameters:
     ----------    
-    x: The x data input used in numpy.polyfit()
-    y: The y data input used in numpy.polyfit()
-    deg: Polynomial degree
+    x: 1D array, the x data input used in numpy.polyfit()
+    y: 1D array, the y data input used in numpy.polyfit()
+    deg: Integer, polynomial degree
     -------
-    Returns: Polynomial fit, parameters for numpy.polyval()
+    Returns: 1D arrays, 1) polynomial fit, 
+    2) parameters for numpy.polyval()
     -------
     """
     line_params = np.polyfit(x, y, deg)
@@ -175,17 +181,19 @@ def trace_fit(x, y, deg=1):
 def sigma_clip(x, y, deg=1, nloops=15, sig=5.0):
     """
     Sigma clip data based on a fit produced by 
-    numpy's polyfit and polyval functions\n
+    numpy's ``polyfit`` and ``polyval`` functions
     ----------
     Parameters:
     ----------      
-    x: The x data input used in numpy.polyfit()
-    y: The y data input used in numpy.polyfit()
-    deg: Polynomial degree
-    nloops: Number of loops to iterate over while clipping
-    sig: Number of sigma away from the fit the data are clipped
+    x: 1D array, the x data input used in numpy.polyfit()
+    y: 1D array, the y data input used in numpy.polyfit()
+    deg: Integer, polynomial degree
+    nloops: Integer, number of loops to iterate over while clipping
+    sig: Integer, number of sigma away from the fit the 
+    data are clipped
     -------
-    Returns: Parameters for numpy.polyval() of the clipped data
+    Returns: 1D array, parameters for numpy.polyval() of the 
+    clipped data
     -------    
     """
     y_sig_arr = np.arange(0,nloops,1.0)
@@ -205,15 +213,15 @@ def blaze_fit(xrng, spec):
     """
     !!! Non-ideal method of fitting blaze, new one underway !!!
     This function fits a 1D blaze function to each spectral order
-    once the order has been integrated to 1D\n
+    once the order has been integrated to 1D
     ----------
     Parameters:
     ----------
-    xrng: The x values of the data (typcially pixels along 
+    xrng: 1D array, the x values of the data (typcially pixels along 
     the dispersion direction of the detector)
-    spec: The integrated values of the order at each x datum
+    spec: 1D array, the integrated values of the order at each x datum
     -------
-    Returns: Polynomial fit to blaze function
+    Returns: 1D array, polynomial fit to blaze function
     -------
     """
     # Find the count values for the edges of the order
@@ -249,19 +257,23 @@ def instrumental_profile(image, order_length, trc_fn, gauss_width):
     Initialize an IP based on 128 columns
     -------------------------------------
     This function is the algorithm for creating a super-sampled profile 
-    of each spectral order. Sample the trace at each column to produce a 
-    profile shape for the trace using the trace function.\n
+    of each spectral order. Sample the trace at each column to produce
+    a profile shape for the trace using the trace function.
     ----------
     Parameters:
     ----------    
-    image: The cleaned echelle image
-    order_length: The length of the dispersion direction (number of x pixels)
-    trc_fn: The trace functions of each spectral order of the cleaned image
-    gauss_width: The distance from the center of each order\n
+    image: 2D array, The cleaned echelle image
+    order_length: Integer, the length of the dispersion direction 
+    (number of x pixels)
+    trc_fn: 2D array, the trace functions of each spectral order of
+    the cleaned image
+    gauss_width: Integer, the distance from the center of each order
     -------
-    Returns: A super-sampled instrumental profile in its X/Y coordinates
-    with and without sorting; non-sorted X/Y coordinates allow for plotting
-    column-byc-column (each 1-pixel wide, ``gauss_width`` tall cross section)
+    Returns: Tuple with 4 arrays: 1)/2) A super-sampled instrumental 
+    profile in its X/Y coordinates, unsorted X/Y coordinates allow 
+    for plotting column-bye-column 
+    (each 1-pixel wide, ``gauss_width`` tall cross section),
+    3)/4) A sorted version of 1)/2), necessary for modeling
     -------
     """
     sample_length = len(np.arange(int(10 - gauss_width),
@@ -316,14 +328,20 @@ def instrumental_profile(image, order_length, trc_fn, gauss_width):
     profile_coordinates = (x_long,y_long, x_sorted,y_sorted)
     return profile_coordinates 
 
-# <==== ##############################################################
-# <==== ##############################################################
-# <==== ##############################################################
 def trace(image, xstart, ystart, xstep, yrange, nsig, filewrite, sep,
           write=False, odr=False, MINERVA=False, HIRES=False,
           MIKE=False, cutoff=[0]):
     """
-    This function returns the coordinates of the echelle orders.\n
+    This function returns the coordinates of the echelle orders.
+    First, it sets up the necessary variables and arrays. Next,
+    it locates the starting pixel of each order and confirms with
+    the user if it has successfully located the correct number of
+    orders. After this, each order is looped over, tracing out
+    its path accros the image using the approximate center of the
+    1D cross-sectional profile to guide it. A Gaussian is fit to
+    the 1D profile to re-trace a mean as the final cetner point of
+    the order. The instrumental profile is fit in detail with
+    ``pychelle.instrumental_profile()``.
     ----------
     Parameters:
     ----------
@@ -342,15 +360,20 @@ def trace(image, xstart, ystart, xstep, yrange, nsig, filewrite, sep,
     write: True: Save image to ``filewrite``
     odr: 1-D array; if the starting Y-pixel of each order is known, input odr\n
     -------
-    Returns:
+    Returns: Tuple with 2 arrays: 1) an N x L size array where N = number 
+    of ordrs, L = length of the image, this array contains the X/Y
+    coordinates of the centers of the orders. 2) returns the same
+    information as ``pychelle.instrumental_profile()``
     -------   
     """
+######################################################################
     print 'Locating spectral orders on cleaned image...'
-    xrng, yvals, counts, centroids = np.arange(1,image.shape[1]+1,xstep), [], [], []
+    xrng, yvals = np.arange(1, image.shape[1]+1, xstep), []
+    counts, centroids = [], []
     background_levels = []
     rect_image, blze_image = np.zeros(image.shape), np.zeros(image.shape)
-    ##### Automatically locates the start of each order #####
-    odr_start, odr_ind = peaks( image[ystart:image.shape[0], xstart], nsig ),[]
+    odr_start = peaks(image[ystart:image.shape[0], xstart], nsig)
+    odr_ind = []
     if odr: #Use input list of order starting locations
         odr_start = odr
     if MINERVA == True: #Account for the curve in orders across the detector cutting off on the edge and remove them
@@ -431,13 +454,13 @@ def trace(image, xstart, ystart, xstep, yrange, nsig, filewrite, sep,
                     plt.close()
                 '''
                 fit_centroid = float(odr_prof.mean[0])
-        # Add the centroid fit to the array used to fit a trace function #
+        # Add the centroid fit to the array used to fit a trace function
                 centroids += [fit_centroid + ystart]
                 yvals += [ypix + ystart]
                 counts += [column[ypix]]
                 background_levels += [background_level]
                 '''
-       # Diagnostic plot for difference between Gaussian centroids and peak location of cross-section of order #
+       # Diagnostic plot for difference between Gaussian centroids and peak location of cross-section of order
                 x_fine = np.arange(ypix-dy, ypix+dy, 0.1)
                 d_peak = np.round(np.abs(fit_centroid - xaxis[len(xaxis)/2]),3)
                 plt.figure(i)
@@ -449,8 +472,8 @@ def trace(image, xstart, ystart, xstep, yrange, nsig, filewrite, sep,
                 pdb.set_trace()
                 '''
             if end_trace == True:
-                break #Stop creating new centroids for the trace function
-        # Use the centroid values from the Gaussian fits to create a trace of order[o] #
+                break # Stop creating new centroids for the trace function
+            # Use the centroid values from the Gaussian fits to create a trace of order[o]
             #yvals = [x+1 for x in yvals] #Correct for indexing 0 to 1
             order_length, gauss_width = len(yvals), 10
             trc_fn = trace_fit(xrng, centroids, deg = 7)[0]
@@ -500,7 +523,7 @@ def trace(image, xstart, ystart, xstep, yrange, nsig, filewrite, sep,
     
 def flat(filepath, filewrite, hdr, window, write=True):
     """
-    This function creates normalized flat images of echelle spectra.\n
+    This function creates normalized flat images of echelle spectra.
     ----------
     Parameters:
     ----------    
@@ -508,7 +531,7 @@ def flat(filepath, filewrite, hdr, window, write=True):
     filewrite: User-designated name of reduced data file
     hdr: Header index of raw image in ``filename``
     window: Size of the smoothing window used in scipy.signal.medfilt()
-    write: True: Save image to ``filewrite`` / False: Do not save to ``filewrite``\n
+    write: True: Save image to ``filewrite`` / False: Do not save to ``filewrite``
     -------
     Returns:
     -------  
@@ -554,7 +577,7 @@ def flat(filepath, filewrite, hdr, window, write=True):
 
 def spectext(image, nfib, trace_arr, yspread, filewrite, cal=False):
     """
-    This function integrates an echelle image along the trace function of each order to collapse it from 2D to 1D.\n
+    This function integrates an echelle image along the trace function of each order to collapse it from 2D to 1D.
     ----------
     Parameters:
     ----------    
@@ -563,7 +586,7 @@ def spectext(image, nfib, trace_arr, yspread, filewrite, cal=False):
     trace_arr: 2-D array of number of columns x number of orders containing the coordinates of the orders
     yspread: Approximate width of order. Calibration spectra are typically wider than science spectra
     filewrite: User-designated name of reduced data file
-    cal: True if the spectrum is a calibration spectrum\n
+    cal: True if the spectrum is a calibration spectrum
     -------
     Returns:
     -------
