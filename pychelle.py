@@ -390,7 +390,7 @@ def trace(image, xstart, ystart, xstep, yrange, nsig, filewrite, sep,
         #cutoff_order = np.where(np.array(odr_start) - 70 < 0)[0]
         odr_start = np.delete(odr_start, cutoff)
     # Create an empty array for the trace function of each order
-    trace_arr = np.zeros((len(odr_start),image.shape[1]/xstep))
+    trace_arr = np.zeros((len(odr_start),image.shape[1]//xstep))
     for i in range(len(odr_start)):
         if (np.abs(odr_start[i] - odr_start[i-1]) <= sep and
             len(odr_start) > 1): # Remove pixel-adjacent peak measurements
@@ -398,10 +398,10 @@ def trace(image, xstart, ystart, xstep, yrange, nsig, filewrite, sep,
     odr_start = list(np.delete(odr_start,odr_ind))                              
     if HIRES and np.abs(odr_start[-1] - image.shape[0]) <= 10:
         odr_start = list(np.delete(odr_start, -1))
-    trc_cont = raw_input(str(len(odr_start))
+    trc_cont = input(str(len(odr_start))
                          +' orders found, is this accurate? (y/n): ')
     while trc_cont != 'y' and trc_cont != 'n': 
-        trc_cont = raw_input('Enter y or n: ')
+        trc_cont = input('Enter y or n: ')
         if trc_cont == 'y' or trc_cont == 'n': break
     if trc_cont == 'n':
         print('Starting Y-pixel coordinates of orders: ', odr_start)
@@ -574,9 +574,9 @@ def flat(filepath, filewrite, hdr, window, write=True):
     ----------
     Parameters:
     ----------    
-    filepath: String, name or path of raw data files
+    filepath: String, name or path of cleaned flat images
     filewrite: String, user-designated name or path of reduced data file
-    hdr: Integer, FITS header index of raw image in ``filename``
+    hdr: Integer, FITS header index of image data in ``filename``
     window: Integer, size of the smoothing window used 
     in scipy.signal.medfilt()
     write: Boolean, True: Save image to ``filewrite``
@@ -587,7 +587,7 @@ def flat(filepath, filewrite, hdr, window, write=True):
     2) Averaged flat field image
     """
     print('Creating normalized flat image...')
-    file_no = np.sort(glob.glob(filepath+'*fits'))
+    file_no = np.sort(glob.glob(filepath+'*CLN.fits'))
     flat_img = np.zeros(fits.open(file_no[0])[hdr].data.shape)
     for f in range(len(file_no)):
         flat_img += fits.open(str(file_no[f]))[hdr].data
@@ -613,8 +613,8 @@ def flat(filepath, filewrite, hdr, window, write=True):
         norm = fits.ImageHDU(norm_flat, name='Normalized Flat')
         hdulist.append(norm)
         hdulist.append(flat)
-        print('Writing file: ', str(filewrite)+'_FLT.fits')
-        hdulist.writeto(str(filewrite)+'_FLT.fits', overwrite=True)
+        print('Writing file: ', str(filewrite)+'_norm.fits')
+        hdulist.writeto(str(filewrite)+'_norm.fits', overwrite=True)
     print('\n~-# Normalized flat image created #-~\n')
     return norm_flat, flat_img
 

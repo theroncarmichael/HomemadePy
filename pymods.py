@@ -12,7 +12,6 @@ from matplotlib.legend_handler import HandlerLine2D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import pdb
 import glob
-import ipdb
 from collections import defaultdict
 
 def get_ra_dec(filename):
