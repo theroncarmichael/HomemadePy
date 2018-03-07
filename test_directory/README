@@ -1,0 +1,4 @@
+This folder contains a Python file (Python 3.6) to test Pychelle with. 
+All of the output is already present in the form of cleaned 2D echelle images, extracted 1D spectra, and plots.
+Run `test_script.py` to check if Pychelle is running properly.
+You may need to change the file paths in `test_script.py`.
